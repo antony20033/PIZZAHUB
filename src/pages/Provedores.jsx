@@ -134,146 +134,147 @@ const Provedores = () => {
     }
   }
 
-  return (
-    <div style={{ padding: '20px', background: '#F3F4F6', minHeight: '100vh' }}>
-      <CCard className="fade-in" style={{ borderRadius: '20px', border: 'none', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)' }}>
-        <CCardHeader
-          style={{
-            background: 'white',
-            borderBottom: '3px solid #FF6600',
-            color: '#1A1C20',
-            fontWeight: 'bold',
-            fontSize: '1.2rem',
-            padding: '20px 30px',
-            borderTopLeftRadius: '20px',
-            borderTopRightRadius: '20px'
-          }}
-        >
-          Registro de Repartidores
-        </CCardHeader>
+ return (
+    <>
+      <div style={{ padding: '20px', background: '#F3F4F6', minHeight: '100vh' }}>
+        <CCard className="fade-in" style={{ borderRadius: '20px', border: 'none', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)' }}>
+          <CCardHeader
+            style={{
+              background: 'white',
+              borderBottom: '3px solid #FF6600',
+              color: '#1A1C20',
+              fontWeight: 'bold',
+              fontSize: '1.2rem',
+              padding: '20px 30px',
+              borderTopLeftRadius: '20px',
+              borderTopRightRadius: '20px'
+            }}
+          >
+            Registro de Repartidores
+          </CCardHeader>
 
-        <CCardBody style={{ background: 'white', padding: '30px' }}>
-          <CRow>
-            {/* FORMULARIO */}
-            <CCol md={4}>
-              <h5 style={{ fontWeight: 'bold', color: '#333' }}>Nuevo Repartidor</h5>
+          <CCardBody style={{ background: 'white', padding: '30px' }}>
+            <CRow>
+              {/* FORMULARIO */}
+              <CCol md={4}>
+                <h5 style={{ fontWeight: 'bold', color: '#333' }}>Nuevo Repartidor</h5>
 
-              <CForm onSubmit={handleAgregar}>
-                {/* Nombre */}
-                <CFormLabel>Nombre</CFormLabel>
-                <CInputGroup className="mb-3">
-                  <CInputGroupText>
-                    <CIcon icon={cilUser} />
-                  </CInputGroupText>
+                <CForm onSubmit={handleAgregar}>
+                  {/* Nombre */}
+                  <CFormLabel>Nombre</CFormLabel>
+                  <CInputGroup className="mb-3">
+                    <CInputGroupText>
+                      <CIcon icon={cilUser} />
+                    </CInputGroupText>
+                    <CFormInput
+                      type="text"
+                      name="nombre"
+                      placeholder="Nombre"
+                      value={form.nombre}
+                      onChange={handleChange}
+                    />
+                  </CInputGroup>
+
+                  {/* Apellidos */}
+                  <CFormLabel>Apellidos</CFormLabel>
                   <CFormInput
+                    className="mb-3"
                     type="text"
-                    name="nombre"
-                    placeholder="Nombre"
-                    value={form.nombre}
+                    name="apellidos"
+                    placeholder="Apellidos"
+                    value={form.apellidos}
                     onChange={handleChange}
                   />
-                </CInputGroup>
 
-                {/* Apellidos */}
-                <CFormLabel>Apellidos</CFormLabel>
-                <CFormInput
-                  className="mb-3"
-                  type="text"
-                  name="apellidos"
-                  placeholder="Apellidos"
-                  value={form.apellidos}
-                  onChange={handleChange}
-                />
+                  {/* Teléfono */}
+                  <CFormLabel>Teléfono</CFormLabel>
+                  <CInputGroup className="mb-3">
+                    <CInputGroupText>
+                      <CIcon icon={cilPhone} />
+                    </CInputGroupText>
+                    <CFormInput
+                      type="text"
+                      name="telefono"
+                      placeholder="Número telefónico"
+                      value={form.telefono}
+                      onChange={handleChange}
+                    />
+                  </CInputGroup>
 
-                {/* Teléfono */}
-                <CFormLabel>Teléfono</CFormLabel>
-                <CInputGroup className="mb-3">
-                  <CInputGroupText>
-                    <CIcon icon={cilPhone} />
-                  </CInputGroupText>
+                  {/* Usuario */}
+                  <CFormLabel>Usuario</CFormLabel>
                   <CFormInput
-                    type="text"
-                    name="telefono"
-                    placeholder="Número telefónico"
-                    value={form.telefono}
+                    list="usuariosList"
+                    name="usuarioId"
+                    className="mb-3"
+                    placeholder="Selecciona un usuario"
+                    value={form.usuarioId}
                     onChange={handleChange}
                   />
-                </CInputGroup>
 
-                {/* Usuario */}
-                <CFormLabel>Usuario</CFormLabel>
-                <CFormInput
-                  list="usuariosList"
-                  name="usuarioId"
-                  className="mb-3"
-                  placeholder="Selecciona un usuario"
-                  value={form.usuarioId}
-                  onChange={handleChange}
-                />
+                  <datalist id="usuariosList">
+                    {usuarios.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.nombreUsuario}
+                      </option>
+                    ))}
+                  </datalist>
 
-                <datalist id="usuariosList">
-                  {usuarios.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.nombreUsuario}
-                    </option>
-                  ))}
-                </datalist>
+                  <CButton type="submit" style={{ width: '100%', background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)', border: 'none', padding: '12px', fontWeight: '700', borderRadius: '12px', color: 'white' }}>
+                    <CIcon icon={cilSave} className="me-2" />
+                    Guardar
+                  </CButton>
+                </CForm>
+              </CCol>
 
-                <CButton type="submit" style={{ width: '100%', background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)', border: 'none', padding: '12px', fontWeight: '700', borderRadius: '12px', color: 'white' }}>
-                  <CIcon icon={cilSave} className="me-2" />
-                  Guardar
-                </CButton>
-              </CForm>
-            </CCol>
+              {/* TABLA */}
+              <CCol md={8}>
+                <h5 style={{ fontWeight: 'bold', color: '#333' }}>Lista de Repartidores</h5>
 
-            {/* TABLA */}
-            <CCol md={8}>
-              <h5 style={{ fontWeight: 'bold', color: '#333' }}>Lista de Repartidores</h5>
-
-              <CTable hover bordered responsive>
-                <CTableHead color="dark">
-                  <CTableRow>
-                    <CTableHeaderCell>Nombre</CTableHeaderCell>
-                    <CTableHeaderCell>Teléfono</CTableHeaderCell>
-                    <CTableHeaderCell>Usuario</CTableHeaderCell>
-                    <CTableHeaderCell className="text-center">Acciones</CTableHeaderCell>
-                  </CTableRow>
-                </CTableHead>
-
-                <CTableBody>
-                  {repartidores.map((r) => (
-                    <CTableRow key={r.id}>
-                      <CTableDataCell>{r.nombre + ' ' + r.apellidos}</CTableDataCell>
-                      <CTableDataCell>{r.telefono}</CTableDataCell>
-                      <CTableDataCell>{r.usuario?.nombreUsuario || '-'}</CTableDataCell>
-
-                      <CTableDataCell className="text-center">
-                        <CButton
-                          size="sm"
-                          color="warning"
-                          className="me-2 text-white"
-                          onClick={() => abrirEditar(r)}
-                        >
-                          <CIcon icon={cilPen} />
-                        </CButton>
-
-                        <CButton
-                          size="sm"
-                          color="danger"
-                          onClick={() => handleEliminar(r.id)}
-                        >
-                          <CIcon icon={cilTrash} />
-                        </CButton>
-                      </CTableDataCell>
+                <CTable hover bordered responsive>
+                  <CTableHead color="dark">
+                    <CTableRow>
+                      <CTableHeaderCell>Nombre</CTableHeaderCell>
+                      <CTableHeaderCell>Teléfono</CTableHeaderCell>
+                      <CTableHeaderCell>Usuario</CTableHeaderCell>
+                      <CTableHeaderCell className="text-center">Acciones</CTableHeaderCell>
                     </CTableRow>
-                  ))}
-                </CTableBody>
-              </CTable>
-            </CCol>
-          </CRow>
-        </CCardBody>
-      </CCard>
-    </div>
+                  </CTableHead>
+
+                  <CTableBody>
+                    {repartidores.map((r) => (
+                      <CTableRow key={r.id}>
+                        <CTableDataCell>{r.nombre + ' ' + r.apellidos}</CTableDataCell>
+                        <CTableDataCell>{r.telefono}</CTableDataCell>
+                        <CTableDataCell>{r.usuario?.nombreUsuario || '-'}</CTableDataCell>
+
+                        <CTableDataCell className="text-center">
+                          <CButton
+                            size="sm"
+                            color="warning"
+                            className="me-2 text-white"
+                            onClick={() => abrirEditar(r)}
+                          >
+                            <CIcon icon={cilPen} />
+                          </CButton>
+
+                          <CButton
+                            size="sm"
+                            color="danger"
+                            onClick={() => handleEliminar(r.id)}
+                          >
+                            <CIcon icon={cilTrash} />
+                          </CButton>
+                        </CTableDataCell>
+                      </CTableRow>
+                    ))}
+                  </CTableBody>
+                </CTable>
+              </CCol>
+            </CRow>
+          </CCardBody>
+        </CCard>
+      </div>
 
       {/* MODAL EDITAR */}
       <CModal visible={editModal} onClose={() => setEditModal(false)}>
@@ -317,7 +318,10 @@ const Provedores = () => {
                 }
               />
 
-              <CButton onClick={handleGuardarEdicion} style={{ background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)', border: 'none', padding: '12px 20px', fontWeight: '700', borderRadius: '10px', color: 'white' }}>
+              <CButton
+                onClick={handleGuardarEdicion}
+                style={{ background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)', border: 'none', padding: '12px 20px', fontWeight: '700', borderRadius: '10px', color: 'white' }}
+              >
                 <CIcon icon={cilSave} className="me-2" />
                 Guardar Cambios
               </CButton>
@@ -326,7 +330,8 @@ const Provedores = () => {
         </CModalBody>
       </CModal>
     </>
-  )
+)
+
 }
 
 export default Provedores

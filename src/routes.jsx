@@ -23,23 +23,27 @@ const routes = [
     { path: '/pages/CompraInsumos', name: 'CompraInsumos', element: CompraInsumos },
     { path: '/pages/AgregarInsumos', name: 'AgregarInsumos', element: AgregarInsumos },
     { path: '/pages/Provedores', name: 'Provedores', element: Provedores },
-    { path: '/pages/Usuarios', name: 'Usuarios', element: Usuarios },
-    { path: '/pages/UsuariosMovil', name: 'UsuariosMovil', element: UsuariosMovil },
+    { path: '/pages/Usuarios', name: 'Usuarios', element: Usuarios, adminOnly: true },
+    { path: '/pages/UsuariosMovil', name: 'UsuariosMovil', element: UsuariosMovil, adminOnly: true },
+    { path: '/pages/RegistroEmpleados', name: 'RegistroEmpleados', element: RegistroEmpleados, adminOnly: true },
     { path: '/pages/Movimientos', name: 'Movimientos', element: Movimientos },
     { path: '/pages/EntradaPedidos', name: 'Entrada Pedidos', element: EntradaPedidos },
     { path: '/pages/Enproceso', name: 'En proceso', element: Enproceso },
     { path: '/pages/Mermas', name: 'Mermas', element: Mermas },
     { path: '/pages/AgregarMermas', name: 'Agregar mermas', element: AgregarMermas },
     { path: '/pages/Repartidores', name: 'Repartidores', element: Repartidores },
-    { path: '/pages/RegistroEmpleados', name: 'RegistroEmpleados', element: RegistroEmpleados },
     { path: '/pages/Caja', name: 'Caja', element: Caja },
-    { path: '/pages/VistaRepartidores', name: 'VistaRepartidores', element: VistaRepartidores },
+    { path: '/pages/VistaRepartidores', name: 'VistaRepartidores', element: VistaRepartidores, repartidorOnly: true },
     { path: '/pages/Ventas', name: 'Ventas', element: Ventas },
 ]
 
 // Función para filtrar rutas según el rol
 export const getFilteredRoutes = (roles) => {
-    const isRepartidor = roles && roles.includes("Repartidor");
+    if (!roles || roles.length === 0) return routes;
+    
+    const isRepartidor = roles.includes("Repartidor");
+    const isEmpleado = roles.includes("Empleado");
+    const isAdministrador = roles.includes("Administrador");
     
     if (isRepartidor) {
         // Solo VistaRepartidores para repartidores
@@ -48,8 +52,20 @@ export const getFilteredRoutes = (roles) => {
         );
     }
     
-    // Para otros roles: todas las rutas EXCEPTO VistaRepartidores
-    return routes.filter(route => route.path !== '/pages/VistaRepartidores');
+    if (isEmpleado) {
+        // Empleado: Todo EXCEPTO gestión de usuarios y VistaRepartidores
+        return routes.filter(route => 
+            !route.adminOnly && !route.repartidorOnly
+        );
+    }
+    
+    if (isAdministrador) {
+        // Administrador: Todo EXCEPTO VistaRepartidores
+        return routes.filter(route => !route.repartidorOnly);
+    }
+    
+    // Por defecto: todas las rutas excepto VistaRepartidores
+    return routes.filter(route => !route.repartidorOnly);
 }
 
 export default routes;
