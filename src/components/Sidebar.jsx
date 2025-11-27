@@ -1,0 +1,171 @@
+import React, { useContext } from 'react'
+import { useSelector, useDispatch } from 'react-redux'
+import {
+  CCloseButton,
+  CSidebar,
+  CSidebarFooter,
+  CSidebarHeader,
+  CSidebarToggler,
+  CButton
+} from '@coreui/react'
+
+import { AppSidebarNav } from './SidebarNav'
+import { getFilteredNav } from '../navegacion/_nav'
+import AuthContext from '../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
+import logo from '../media/img/logo.jpg'
+
+const AppSidebar = () => {
+  const dispatch = useDispatch()
+  const unfoldable = useSelector((state) => state.sidebarUnfoldable)
+  const sidebarShow = useSelector((state) => state.sidebarShow)
+
+const { logout, roles } = useContext(AuthContext)
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/')
+  }
+
+  return (
+    <CSidebar
+      className="border-end sidebar-dark-theme"
+      position="fixed"
+      unfoldable={unfoldable}
+      visible={sidebarShow}
+      onVisibleChange={(visible) => {
+        dispatch({ type: 'set', sidebarShow: visible })
+      }}
+      style={{
+        background: 'linear-gradient(180deg, #1A1C20 0%, #2D3748 100%)',
+        opacity: 1,
+        padding: '0',
+        boxShadow: '4px 0 20px rgba(0, 0, 0, 0.15)',
+        borderRight: '1px solid rgba(255, 255, 255, 0.1)',
+      }}
+    >
+      {/* Header */}
+      <CSidebarHeader
+        className="border-bottom"
+        style={{
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+          padding: '24px 20px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          position: 'relative',
+        }}
+      >
+        <CCloseButton
+          className="d-lg-none"
+          style={{ 
+            color: '#fff',
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            zIndex: 10
+          }}
+          onClick={() => dispatch({ type: 'set', sidebarShow: false })}
+        />
+        
+        <div style={{ textAlign: 'center', width: '100%' }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            margin: '0 auto 12px',
+            borderRadius: '16px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 16px rgba(255, 102, 0, 0.3)',
+            border: '3px solid rgba(255, 102, 0, 0.3)',
+          }}>
+            <img 
+              src={logo} 
+              alt="PizzaHub Logo" 
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+              }}
+            />
+          </div>
+          <h2
+            style={{
+              color: '#ffffff',
+              fontWeight: '800',
+              letterSpacing: '2px',
+              fontSize: '1.5rem',
+              fontFamily: "'Inter', sans-serif",
+              margin: 0,
+              textTransform: 'uppercase',
+            }}
+          >
+            PizzaHub
+          </h2>
+          <p style={{
+            color: 'rgba(255, 255, 255, 0.6)',
+            fontSize: '0.75rem',
+            margin: '4px 0 0 0',
+            fontWeight: '500',
+            letterSpacing: '1px',
+          }}>ADMIN PANEL</p>
+        </div>
+      </CSidebarHeader>
+
+      {/* Navegación */}
+<AppSidebarNav items={getFilteredNav(roles)} />
+
+      {/* Footer con Logout */}
+      <CSidebarFooter
+        className="border-top d-flex flex-column align-items-center justify-content-center p-3"
+        style={{
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          backgroundColor: 'rgba(0, 0, 0, 0.2)',
+          padding: '20px',
+        }}
+      >
+        <CButton
+          color="danger"
+          style={{
+            width: '100%',
+            fontWeight: '600',
+            backgroundColor: 'transparent',
+            borderColor: 'rgba(220, 53, 69, 0.5)',
+            border: '2px solid rgba(220, 53, 69, 0.5)',
+            borderRadius: '10px',
+            padding: '12px',
+            fontSize: '14px',
+            color: '#ff6b6b',
+            transition: 'all 0.2s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.backgroundColor = '#dc3545'
+            e.target.style.borderColor = '#dc3545'
+            e.target.style.color = '#ffffff'
+            e.target.style.transform = 'translateY(-2px)'
+            e.target.style.boxShadow = '0 4px 12px rgba(220, 53, 69, 0.4)'
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.backgroundColor = 'transparent'
+            e.target.style.borderColor = 'rgba(220, 53, 69, 0.5)'
+            e.target.style.color = '#ff6b6b'
+            e.target.style.transform = 'translateY(0)'
+            e.target.style.boxShadow = 'none'
+          }}
+          onClick={handleLogout}
+        >
+          🚪 Cerrar sesión
+        </CButton>
+
+        <CSidebarToggler
+          className="mt-3"
+          style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            borderRadius: '6px',
+          }}
+          onClick={() => dispatch({ type: 'set', sidebarUnfoldable: !unfoldable })}
+        />
+      </CSidebarFooter>
+    </CSidebar>
+  )
+}
+
+export default React.memo(AppSidebar)
