@@ -1,4 +1,4 @@
-import React, { useContext } from 'react'
+import React, { useContext, useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import {
   CCloseButton,
@@ -6,7 +6,8 @@ import {
   CSidebarFooter,
   CSidebarHeader,
   CSidebarToggler,
-  CButton
+  CButton,
+  CFormSwitch
 } from '@coreui/react'
 
 import { AppSidebarNav } from './SidebarNav'
@@ -14,19 +15,54 @@ import { getFilteredNav } from '../navegacion/_nav'
 import AuthContext from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import logo from '../media/img/logo.jpg'
+import useNewPedidos from '../hooks/useNewPedidos'
 
 const AppSidebar = () => {
   const dispatch = useDispatch()
   const unfoldable = useSelector((state) => state.sidebarUnfoldable)
   const sidebarShow = useSelector((state) => state.sidebarShow)
 
-const { logout, roles } = useContext(AuthContext)
+  const { logout, roles } = useContext(AuthContext)
   const navigate = useNavigate()
+
+  // Estado para controlar si las notificaciones están activas
+  const [notificacionesActivas, setNotificacionesActivas] = useState(() => {
+    // Leer del localStorage al iniciar
+    const saved = localStorage.getItem('notificacionesActivas')
+    return saved !== null ? JSON.parse(saved) : true // true por defecto
+  })
+
+  // Hook de pedidos - solo se ejecuta si notificacionesActivas es true
+  const { pedidosPendientes, hayNuevos } = useNewPedidos(notificacionesActivas, 30000)
+
+  // Guardar en localStorage cuando cambie el estado
+  useEffect(() => {
+    localStorage.setItem('notificacionesActivas', JSON.stringify(notificacionesActivas))
+  }, [notificacionesActivas])
 
   const handleLogout = () => {
     logout()
     navigate('/')
   }
+
+  const handleToggleNotificaciones = () => {
+    setNotificacionesActivas(prev => !prev)
+  }
+
+  // Filtrar navegación y agregar badges dinámicos
+  const navigationItems = getFilteredNav(roles).map(item => {
+    // Si el item tiene badge y apunta a "En proceso"
+    if (item.badge && item.to === '/pages/Enproceso') {
+      return {
+        ...item,
+        badge: notificacionesActivas && pedidosPendientes > 0 ? {
+          color: hayNuevos ? 'danger' : 'warning',
+          text: pedidosPendientes.toString(),
+        } : undefined
+      }
+    }
+    return item
+  })
 
   return (
     <CSidebar
@@ -106,14 +142,16 @@ const { logout, roles } = useContext(AuthContext)
             margin: '4px 0 0 0',
             fontWeight: '500',
             letterSpacing: '1px',
-          }}>ADMIN PANEL</p>
+          }}>
+            {roles && roles.includes("Repartidor") ? "REPARTIDOR" : "ADMIN PANEL"}
+          </p>
         </div>
       </CSidebarHeader>
 
-      {/* Navegación */}
-<AppSidebarNav items={getFilteredNav(roles)} />
+      {/* Navegación dinámica con badges */}
+      <AppSidebarNav items={navigationItems} />
 
-      {/* Footer con Logout */}
+      {/* Footer con controles */}
       <CSidebarFooter
         className="border-top d-flex flex-column align-items-center justify-content-center p-3"
         style={{
@@ -122,6 +160,45 @@ const { logout, roles } = useContext(AuthContext)
           padding: '20px',
         }}
       >
+        {/* Toggle de Notificaciones */}
+        {(roles && (roles.includes("Administrador") || roles.includes("Empleado"))) && (
+          <div
+            style={{
+              width: '100%',
+              padding: '12px 16px',
+              marginBottom: '12px',
+              background: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: '10px',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '18px' }}>🔔</span>
+              <span
+                style={{
+                  color: '#ffffff',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                }}
+              >
+                Alertas
+              </span>
+            </div>
+            <CFormSwitch
+              id="notificacionesSwitch"
+              checked={notificacionesActivas}
+              onChange={handleToggleNotificaciones}
+              style={{
+                cursor: 'pointer',
+              }}
+            />
+          </div>
+        )}
+
+        {/* Botón de Logout */}
         <CButton
           color="danger"
           style={{
@@ -152,9 +229,10 @@ const { logout, roles } = useContext(AuthContext)
           }}
           onClick={handleLogout}
         >
-          🚪 Cerrar sesión
+           Cerrar sesión
         </CButton>
 
+        {/* Sidebar Toggler */}
         <CSidebarToggler
           className="mt-3"
           style={{

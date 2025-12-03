@@ -6,15 +6,25 @@ const VistaRepartidor = () => {
   const [loading, setLoading] = useState(false);
   const [repartidorId, setRepartidorId] = useState("");
   const [mostrarInput, setMostrarInput] = useState(true);
+  const [notificacion, setNotificacion] = useState(null);
 
   const token = localStorage.getItem("token");
+  const API_URL = "https://pizzahub-api.onrender.com";
 
   // -------------------------------
-  // OBTENER INFO DEL REPARTIDOR ACTUAL
+  // MOSTRAR NOTIFICACIÓN
+  // -------------------------------
+  const mostrarNotificacion = (mensaje, tipo = "success") => {
+    setNotificacion({ mensaje, tipo });
+    setTimeout(() => setNotificacion(null), 3000);
+  };
+
+  // -------------------------------
+  // OBTENER INFO DEL REPARTIDOR
   // -------------------------------
   const fetchRepartidorActual = async (id) => {
     try {
-      const response = await fetch(`https://localhost:7188/api/Repartidores/${id}`, {
+      const response = await fetch(`${API_URL}/api/Repartidores/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -26,22 +36,22 @@ const VistaRepartidor = () => {
       setRepartidor(data);
     } catch (error) {
       console.error("Error cargando repartidor:", error);
-      alert("Error: No se encontró el repartidor con ID " + id);
+      mostrarNotificacion("No se encontró el repartidor con ID " + id, "error");
     }
   };
 
   // -------------------------------
-  // CARGAR PEDIDOS ASIGNADOS
+  // CARGAR PEDIDOS ASIGNADOS (Solo NO entregados)
   // -------------------------------
   const fetchPedidos = async (id) => {
     if (!id) {
-      alert("Por favor ingresa tu ID de repartidor");
+      mostrarNotificacion("Por favor ingresa tu ID de repartidor", "warning");
       return;
     }
     
     try {
       setLoading(true);
-      const response = await fetch("https://localhost:7188/api/PedidosNew", {
+      const response = await fetch(`${API_URL}/api/PedidosNew`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -51,21 +61,26 @@ const VistaRepartidor = () => {
 
       const data = await response.json();
       
-      console.log("Todos los pedidos:", data);
-      console.log("Filtrando por repartidorId:", id);
+      console.log("📋 Todos los pedidos:", data);
+      console.log("🔍 Filtrando por repartidorId:", id);
       
-      // Filtrar solo los pedidos asignados a este repartidor
+      // Filtrar pedidos asignados Y que NO estén entregados (estado !== 3) ni cancelados (estado !== 4)
       const pedidosAsignados = data.filter(p => {
-        console.log(`Pedido ${p.id}: repartidorId=${p.repartidorId}, estado=${p.estado}`);
-        return p.repartidorId === parseInt(id) && p.estado !== 3 && p.estado !== 4;
+        const esDelRepartidor = p.repartidorId === parseInt(id);
+        const noEntregado = p.estado !== 3;
+        const noCancelado = p.estado !== 4;
+        
+        console.log(`Pedido ${p.id}: repartidor=${p.repartidorId}, estado=${p.estado}, mostrar=${esDelRepartidor && noEntregado && noCancelado}`);
+        
+        return esDelRepartidor && noEntregado && noCancelado;
       });
       
-      console.log("Pedidos asignados filtrados:", pedidosAsignados);
+      console.log("✅ Pedidos filtrados:", pedidosAsignados);
       setPedidos(pedidosAsignados);
       setMostrarInput(false);
     } catch (error) {
       console.error("Error cargando pedidos:", error);
-      alert("Error al cargar pedidos: " + error.message);
+      mostrarNotificacion("Error al cargar pedidos: " + error.message, "error");
     } finally {
       setLoading(false);
     }
@@ -79,7 +94,7 @@ const VistaRepartidor = () => {
       fetchRepartidorActual(repartidorId);
       fetchPedidos(repartidorId);
     } else {
-      alert("Por favor ingresa tu ID de repartidor");
+      mostrarNotificacion("Por favor ingresa tu ID de repartidor", "warning");
     }
   };
 
@@ -88,8 +103,10 @@ const VistaRepartidor = () => {
   // -------------------------------
   const marcarEntregado = async (pedidoId) => {
     try {
+      console.log(`📦 Marcando pedido ${pedidoId} como entregado (estado: 3)`);
+      
       const response = await fetch(
-        `https://localhost:7188/api/PedidosNew/${pedidoId}/estado`,
+        `${API_URL}/api/PedidosNew/${pedidoId}/estado`,
         {
           method: "PUT",
           headers: {
@@ -102,40 +119,43 @@ const VistaRepartidor = () => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Error marcando como entregado: ${errorText}`);
+        throw new Error(`Error: ${errorText}`);
       }
 
-      // Actualizar estado local
+      console.log("✅ Pedido marcado como entregado exitosamente");
+
+      // Remover pedido de la lista local inmediatamente
       setPedidos(prevPedidos => prevPedidos.filter(p => p.id !== pedidoId));
       
-      // Mostrar confirmación
-      alert("✅ Pedido marcado como entregado exitosamente");
+      // Mostrar notificación de éxito
+      mostrarNotificacion(`Pedido #${pedidoId} entregado correctamente`, "success");
       
-      // Recargar pedidos
-      await fetchPedidos(repartidorId);
     } catch (error) {
-      console.error("Error marcando como entregado:", error);
-      alert("❌ Error al marcar como entregado: " + error.message);
+      console.error("❌ Error marcando como entregado:", error);
+      mostrarNotificacion("Error al marcar como entregado: " + error.message, "error");
     }
   };
 
   // -------------------------------
-  // OBTENER COLOR DEL ESTADO
+  // OBTENER INFORMACIÓN DEL ESTADO
   // -------------------------------
   const getEstadoInfo = (estado) => {
-    let estadoNormalizado = estado;
+    // Normalizar estado
+    let estadoNum = typeof estado === 'string' ? parseInt(estado) : estado;
     
-    if (typeof estado === 'string') {
-      const estadoStr = estado.toLowerCase();
-      if (estadoStr === 'pendiente' || estadoStr === '1') estadoNormalizado = 1;
-      else if (estadoStr === 'encamino' || estadoStr === 'en camino' || estadoStr === '2') estadoNormalizado = 2;
-    }
+    console.log("Estado recibido:", estado, "→ Normalizado:", estadoNum);
     
-    switch (estadoNormalizado) {
+    switch (estadoNum) {
+      case 0:
+        return { color: "#ff9800", bg: "#fff3e0", text: "Preparando", icon: "👨‍🍳" };
       case 1:
         return { color: "#ffc107", bg: "#fff8e1", text: "Pendiente", icon: "⏳" };
       case 2:
         return { color: "#2196f3", bg: "#e3f2fd", text: "En camino", icon: "🚚" };
+      case 3:
+        return { color: "#4caf50", bg: "#e8f5e9", text: "Entregado", icon: "✅" };
+      case 4:
+        return { color: "#f44336", bg: "#ffebee", text: "Cancelado", icon: "❌" };
       default:
         return { color: "#9e9e9e", bg: "#f5f5f5", text: "Desconocido", icon: "❓" };
     }
@@ -145,10 +165,43 @@ const VistaRepartidor = () => {
     <div
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        background: "linear-gradient(135deg, #FF6600 0%, #FF8533 50%, #FFA366 100%)",
         padding: "20px",
       }}
     >
+      {/* Notificación Flotante */}
+      {notificacion && (
+        <div
+          style={{
+            position: "fixed",
+            top: "20px",
+            right: "20px",
+            zIndex: 9999,
+            background: notificacion.tipo === "success" 
+              ? "linear-gradient(135deg, #4caf50 0%, #45a049 100%)"
+              : notificacion.tipo === "error"
+              ? "linear-gradient(135deg, #f44336 0%, #e53935 100%)"
+              : "linear-gradient(135deg, #ff9800 0%, #fb8c00 100%)",
+            color: "white",
+            padding: "16px 24px",
+            borderRadius: "16px",
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            animation: "slideInRight 0.3s ease-out",
+            fontWeight: "700",
+            fontSize: "15px",
+            maxWidth: "400px",
+          }}
+        >
+          <span style={{ fontSize: "24px" }}>
+            {notificacion.tipo === "success" ? "✅" : notificacion.tipo === "error" ? "❌" : "⚠️"}
+          </span>
+          <span>{notificacion.mensaje}</span>
+        </div>
+      )}
+
       <div style={{ maxWidth: "800px", margin: "0 auto" }}>
         
         {/* Header del Repartidor */}
@@ -158,21 +211,23 @@ const VistaRepartidor = () => {
             borderRadius: "20px",
             padding: "30px",
             marginBottom: "30px",
-            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
+            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15)",
             textAlign: "center",
+            borderBottom: "4px solid #FF6600",
           }}
         >
           <div
             style={{
               width: "80px",
               height: "80px",
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
               borderRadius: "50%",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 20px",
               fontSize: "40px",
+              boxShadow: "0 4px 20px rgba(255, 102, 0, 0.3)",
             }}
           >
             🚴
@@ -182,13 +237,19 @@ const VistaRepartidor = () => {
               margin: "0 0 10px 0",
               fontSize: "28px",
               fontWeight: "800",
-              color: "#333",
+              color: "#1A1C20",
+              fontFamily: "'Inter', sans-serif",
             }}
           >
             {repartidor ? `¡Hola, ${repartidor.nombreCompleto}!` : "Vista de Repartidor"}
           </h1>
           <p style={{ color: "#666", fontSize: "16px", margin: 0 }}>
-            {!mostrarInput && `Tienes ${pedidos.length} ${pedidos.length === 1 ? "pedido pendiente" : "pedidos pendientes"}`}
+            {!mostrarInput && (
+              <>
+                Tienes <span style={{ fontWeight: "800", color: "#FF6600" }}>{pedidos.length}</span>{" "}
+                {pedidos.length === 1 ? "pedido pendiente" : "pedidos pendientes"}
+              </>
+            )}
           </p>
         </div>
 
@@ -197,9 +258,9 @@ const VistaRepartidor = () => {
           style={{
             background: "white",
             borderRadius: "20px",
-            padding: "20px",
+            padding: "24px",
             marginBottom: "20px",
-            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
+            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15)",
           }}
         >
           <label
@@ -207,9 +268,11 @@ const VistaRepartidor = () => {
               display: "block",
               fontSize: "14px",
               fontWeight: "700",
-              color: "#667eea",
+              color: "#FF6600",
               marginBottom: "12px",
               textAlign: "center",
+              textTransform: "uppercase",
+              letterSpacing: "1px",
             }}
           >
             🆔 Ingresa tu ID de Repartidor
@@ -222,8 +285,8 @@ const VistaRepartidor = () => {
               placeholder="Ej: 1, 2, 3..."
               style={{
                 flex: 1,
-                padding: "14px",
-                border: "2px solid #667eea",
+                padding: "14px 16px",
+                border: "2px solid #E5E7EB",
                 borderRadius: "12px",
                 fontSize: "16px",
                 fontWeight: "600",
@@ -231,11 +294,11 @@ const VistaRepartidor = () => {
                 transition: "all 0.3s ease",
               }}
               onFocus={(e) => {
-                e.target.style.borderColor = "#764ba2";
-                e.target.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)";
+                e.target.style.borderColor = "#FF6600";
+                e.target.style.boxShadow = "0 0 0 3px rgba(255, 102, 0, 0.1)";
               }}
               onBlur={(e) => {
-                e.target.style.borderColor = "#667eea";
+                e.target.style.borderColor = "#E5E7EB";
                 e.target.style.boxShadow = "none";
               }}
               onKeyPress={(e) => {
@@ -250,7 +313,7 @@ const VistaRepartidor = () => {
               style={{
                 background: loading 
                   ? "#ccc" 
-                  : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  : "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
                 color: "white",
                 border: "none",
                 borderRadius: "12px",
@@ -258,19 +321,19 @@ const VistaRepartidor = () => {
                 fontSize: "16px",
                 fontWeight: "700",
                 cursor: loading ? "not-allowed" : "pointer",
-                boxShadow: "0 4px 15px rgba(102, 126, 234, 0.3)",
+                boxShadow: "0 4px 15px rgba(255, 102, 0, 0.3)",
                 transition: "all 0.3s ease",
                 whiteSpace: "nowrap",
               }}
               onMouseEnter={(e) => {
                 if (!loading) {
                   e.target.style.transform = "translateY(-2px)";
-                  e.target.style.boxShadow = "0 6px 20px rgba(102, 126, 234, 0.4)";
+                  e.target.style.boxShadow = "0 6px 20px rgba(255, 102, 0, 0.4)";
                 }
               }}
               onMouseLeave={(e) => {
                 e.target.style.transform = "translateY(0)";
-                e.target.style.boxShadow = "0 4px 15px rgba(102, 126, 234, 0.3)";
+                e.target.style.boxShadow = "0 4px 15px rgba(255, 102, 0, 0.3)";
               }}
             >
               {loading ? "🔄 Cargando..." : "🔄 Cargar Pedidos"}
@@ -288,11 +351,11 @@ const VistaRepartidor = () => {
                   borderRadius: "20px",
                   padding: "60px 30px",
                   textAlign: "center",
-                  boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
+                  boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15)",
                 }}
               >
                 <div style={{ fontSize: "48px", marginBottom: "20px" }}>⏳</div>
-                <p style={{ color: "#666", fontSize: "18px", margin: 0 }}>
+                <p style={{ color: "#666", fontSize: "18px", margin: 0, fontWeight: "600" }}>
                   Cargando pedidos...
                 </p>
               </div>
@@ -303,7 +366,7 @@ const VistaRepartidor = () => {
                   borderRadius: "20px",
                   padding: "60px 30px",
                   textAlign: "center",
-                  boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
+                  boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15)",
                 }}
               >
                 <div style={{ fontSize: "64px", marginBottom: "20px" }}>🎉</div>
@@ -325,17 +388,20 @@ const VistaRepartidor = () => {
                         background: "white",
                         borderRadius: "20px",
                         padding: "24px",
-                        boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
+                        boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15)",
                         position: "relative",
                         transition: "all 0.3s ease",
+                        border: "2px solid transparent",
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.transform = "translateY(-4px)";
-                        e.currentTarget.style.boxShadow = "0 15px 50px rgba(0, 0, 0, 0.25)";
+                        e.currentTarget.style.boxShadow = "0 15px 50px rgba(255, 102, 0, 0.2)";
+                        e.currentTarget.style.borderColor = "#FF6600";
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow = "0 10px 40px rgba(0, 0, 0, 0.2)";
+                        e.currentTarget.style.boxShadow = "0 10px 40px rgba(0, 0, 0, 0.15)";
+                        e.currentTarget.style.borderColor = "transparent";
                       }}
                     >
                       {/* Badge de Estado */}
@@ -366,7 +432,7 @@ const VistaRepartidor = () => {
                             margin: "0 0 12px 0",
                             fontSize: "32px",
                             fontWeight: "900",
-                            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                            background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
                             WebkitBackgroundClip: "text",
                             WebkitTextFillColor: "transparent",
                             backgroundClip: "text",
@@ -393,14 +459,14 @@ const VistaRepartidor = () => {
                       {/* Total */}
                       <div
                         style={{
-                          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                          background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
                           borderRadius: "16px",
                           padding: "20px",
                           marginBottom: "20px",
                           textAlign: "center",
                         }}
                       >
-                        <div style={{ color: "white", fontSize: "14px", opacity: 0.9 }}>
+                        <div style={{ color: "white", fontSize: "14px", opacity: 0.9, fontWeight: "600" }}>
                           Valor del pedido
                         </div>
                         <div
@@ -409,6 +475,7 @@ const VistaRepartidor = () => {
                             fontSize: "36px",
                             fontWeight: "900",
                             marginTop: "4px",
+                            fontFamily: "'Inter', sans-serif",
                           }}
                         >
                           ${p.total}
@@ -416,59 +483,61 @@ const VistaRepartidor = () => {
                       </div>
 
                       {/* Productos */}
-                      <div
-                        style={{
-                          background: "#f8f9fa",
-                          borderRadius: "16px",
-                          padding: "20px",
-                          marginBottom: "24px",
-                          maxHeight: "200px",
-                          overflowY: "auto",
-                        }}
-                      >
-                        <h4
+                      {p.detalles && p.detalles.length > 0 && (
+                        <div
                           style={{
-                            margin: "0 0 16px 0",
-                            fontSize: "14px",
-                            fontWeight: "700",
-                            color: "#666",
-                            textTransform: "uppercase",
-                            letterSpacing: "1px",
+                            background: "#f8f9fa",
+                            borderRadius: "16px",
+                            padding: "20px",
+                            marginBottom: "24px",
+                            maxHeight: "200px",
+                            overflowY: "auto",
                           }}
                         >
-                          📦 Productos del pedido
-                        </h4>
-                        {p.detalles?.map((d, index) => (
-                          <div
-                            key={d.id || index}
+                          <h4
                             style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              padding: "12px 0",
-                              borderBottom: index < p.detalles.length - 1 ? "1px solid #e0e0e0" : "none",
+                              margin: "0 0 16px 0",
+                              fontSize: "14px",
+                              fontWeight: "700",
+                              color: "#666",
+                              textTransform: "uppercase",
+                              letterSpacing: "1px",
                             }}
                           >
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: "700", color: "#333", fontSize: "15px" }}>
-                                {d.productoNombre}
-                              </div>
-                              <div style={{ color: "#999", fontSize: "13px", marginTop: "4px" }}>
-                                Cantidad: {d.cantidad}
-                              </div>
-                            </div>
+                            📦 Productos del pedido
+                          </h4>
+                          {p.detalles.map((d, index) => (
                             <div
+                              key={d.id || index}
                               style={{
-                                fontWeight: "800",
-                                color: "#667eea",
-                                fontSize: "16px",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                padding: "12px 0",
+                                borderBottom: index < p.detalles.length - 1 ? "1px solid #e0e0e0" : "none",
                               }}
                             >
-                              ${d.subtotal}
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: "700", color: "#333", fontSize: "15px" }}>
+                                  {d.productoNombre}
+                                </div>
+                                <div style={{ color: "#999", fontSize: "13px", marginTop: "4px" }}>
+                                  Cantidad: {d.cantidad}
+                                </div>
+                              </div>
+                              <div
+                                style={{
+                                  fontWeight: "800",
+                                  color: "#FF6600",
+                                  fontSize: "16px",
+                                }}
+                              >
+                                ${d.subtotal}
+                              </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
 
                       {/* Botón de Entregar */}
                       <button
@@ -514,6 +583,21 @@ const VistaRepartidor = () => {
           </>
         )}
       </div>
+
+      <style>
+        {`
+          @keyframes slideInRight {
+            from {
+              transform: translateX(400px);
+              opacity: 0;
+            }
+            to {
+              transform: translateX(0);
+              opacity: 1;
+            }
+          }
+        `}
+      </style>
     </div>
   );
 };

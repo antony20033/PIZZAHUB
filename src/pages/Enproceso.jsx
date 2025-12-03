@@ -1,10 +1,45 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Pedidos = () => {
   const [pedidos, setPedidos] = useState([]);
   const [repartidores, setRepartidores] = useState([]);
+  const [mostrarCompletados, setMostrarCompletados] = useState(false);
 
   const token = localStorage.getItem("token");
+  const navigate = useNavigate();
+
+  // -------------------------------
+  // NORMALIZAR ESTADO A NÚMERO
+  // -------------------------------
+  const normalizarEstado = (estado) => {
+    // Si ya es número, retornarlo
+    if (typeof estado === 'number') {
+      return estado;
+    }
+    
+    // Si es string, convertir
+    if (typeof estado === 'string') {
+      const estadoStr = estado.toLowerCase().trim();
+      
+      // Mapeo de strings a números
+      const mapaEstados = {
+        'pendiente': 1,
+        '1': 1,
+        'encamino': 2,
+        'en camino': 2,
+        '2': 2,
+        'entregado': 3,
+        '3': 3,
+        'cancelado': 4,
+        '4': 4
+      };
+      
+      return mapaEstados[estadoStr] || parseInt(estado) || 1;
+    }
+    
+    return 1; // Default: Pendiente
+  };
 
   // -------------------------------
   // CARGAR PEDIDOS
@@ -21,14 +56,22 @@ const Pedidos = () => {
 
       const data = await response.json();
       
-      // DEBUG: Ver qué formato tiene el estado
       console.log("Datos recibidos del API:", data);
       if (data.length > 0) {
         console.log("Primer pedido completo:", data[0]);
-        console.log("Estado del primer pedido:", data[0].estado, "Tipo:", typeof data[0].estado);
+        console.log("Estado original:", data[0].estado, "Tipo:", typeof data[0].estado);
+        console.log("Estado normalizado:", normalizarEstado(data[0].estado));
       }
       
-      setPedidos(data);
+      // Normalizar estados al cargar
+      const pedidosNormalizados = data.map(p => ({
+        ...p,
+        estadoOriginal: p.estado, // Guardar original para debugging
+        estado: normalizarEstado(p.estado)
+      }));
+      
+      console.log("Pedidos después de normalizar:", pedidosNormalizados);
+      setPedidos(pedidosNormalizados);
     } catch (error) {
       console.error("Error cargando pedidos:", error);
       alert("Error al cargar pedidos: " + error.message);
@@ -83,14 +126,14 @@ const Pedidos = () => {
         throw new Error(`Error cambiando estado: ${errorText}`);
       }
 
-      // Actualizar el estado local inmediatamente para feedback visual
+      // Actualizar el estado local inmediatamente
       setPedidos(prevPedidos =>
         prevPedidos.map(p =>
-          p.id === pedidoId ? { ...p, estado: nuevoEstado } : p
+          p.id === pedidoId ? { ...p, estado: nuevoEstado, estadoOriginal: nuevoEstado } : p
         )
       );
 
-      // Recargar todos los pedidos para asegurar sincronización
+      // Recargar todos los pedidos
       await fetchPedidos();
       
       alert("Estado actualizado correctamente");
@@ -101,7 +144,7 @@ const Pedidos = () => {
   };
 
   // -------------------------------
-  // ASIGNAR REPARTIDOR (CORREGIDO)
+  // ASIGNAR REPARTIDOR
   // -------------------------------
   const asignarRepartidor = async (pedidoId, repartidorId) => {
     if (!repartidorId || repartidorId === 0) {
@@ -127,14 +170,12 @@ const Pedidos = () => {
         throw new Error(`Error asignando repartidor: ${errorText}`);
       }
 
-      // Actualizar el estado local inmediatamente
       setPedidos(prevPedidos =>
         prevPedidos.map(p =>
           p.id === pedidoId ? { ...p, repartidorId: repartidorId } : p
         )
       );
 
-      // Recargar pedidos para sincronizar con el servidor
       await fetchPedidos();
       
       alert("Repartidor asignado correctamente");
@@ -145,24 +186,22 @@ const Pedidos = () => {
   };
 
   // -------------------------------
+  // IR A VENTAS CON ID DEL PEDIDO
+  // -------------------------------
+ const irAVentas = (pedidoId) => {
+  navigate(`/pages/Ventas?pedidoId=${pedidoId}`);
+};
+
+  // -------------------------------
   // OBTENER COLOR Y BADGE DEL ESTADO
   // -------------------------------
   const getEstadoInfo = (estado) => {
-    // Normalizar el estado (puede venir como número o string)
-    let estadoNormalizado = estado;
+    // El estado ya debe estar normalizado
+    const estadoNum = typeof estado === 'number' ? estado : normalizarEstado(estado);
     
-    // Si viene como string, convertir a número
-    if (typeof estado === 'string') {
-      const estadoStr = estado.toLowerCase();
-      if (estadoStr === 'pendiente' || estadoStr === '1') estadoNormalizado = 1;
-      else if (estadoStr === 'encamino' || estadoStr === 'en camino' || estadoStr === '2') estadoNormalizado = 2;
-      else if (estadoStr === 'entregado' || estadoStr === '3') estadoNormalizado = 3;
-      else if (estadoStr === 'cancelado' || estadoStr === '4') estadoNormalizado = 4;
-    }
+    console.log("getEstadoInfo - Estado recibido:", estado, "Normalizado:", estadoNum);
     
-    console.log("Estado recibido:", estado, "Normalizado a:", estadoNormalizado);
-    
-    switch (estadoNormalizado) {
+    switch (estadoNum) {
       case 1:
         return { color: "#ffc107", bg: "#fff8e1", text: "Pendiente", icon: "⏳" };
       case 2:
@@ -172,7 +211,7 @@ const Pedidos = () => {
       case 4:
         return { color: "#f44336", bg: "#ffebee", text: "Cancelado", icon: "❌" };
       default:
-        console.warn("Estado desconocido:", estado);
+        console.warn("Estado desconocido:", estado, "normalizado a:", estadoNum);
         return { color: "#9e9e9e", bg: "#f5f5f5", text: "Desconocido", icon: "❓" };
     }
   };
@@ -184,6 +223,32 @@ const Pedidos = () => {
     const repartidor = repartidores.find(r => r.id === repartidorId);
     return repartidor ? repartidor.nombre : null;
   };
+
+  // -------------------------------
+  // FILTRAR PEDIDOS
+  // -------------------------------
+  const pedidosEnProceso = pedidos.filter(p => {
+    const estado = p.estado; // Ya está normalizado
+    const resultado = estado !== 3 && estado !== 4;
+    console.log(`Pedido #${p.id} - Estado: ${estado} (original: ${p.estadoOriginal}) - En proceso: ${resultado}`);
+    return resultado;
+  });
+
+  const pedidosCompletados = pedidos.filter(p => {
+    const estado = p.estado; // Ya está normalizado
+    const resultado = estado === 3 || estado === 4;
+    console.log(`Pedido #${p.id} - Estado: ${estado} (original: ${p.estadoOriginal}) - Completado: ${resultado}`);
+    return resultado;
+  });
+
+  const pedidosMostrar = mostrarCompletados ? pedidosCompletados : pedidosEnProceso;
+
+  console.log("=== RESUMEN DE FILTRADO ===");
+  console.log("Total pedidos:", pedidos.length);
+  console.log("En proceso:", pedidosEnProceso.length);
+  console.log("Completados:", pedidosCompletados.length);
+  console.log("Mostrando:", mostrarCompletados ? "Completados" : "En proceso");
+  console.log("Pedidos a mostrar:", pedidosMostrar.length);
 
   return (
     <div
@@ -203,44 +268,85 @@ const Pedidos = () => {
             padding: "25px 30px",
             marginBottom: "30px",
             boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
             borderBottom: "4px solid #FF6600",
           }}
         >
-          <div>
-            <h1
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+            <div>
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: "32px",
+                  fontWeight: "800",
+                  color: "#1A1C20",
+                }}
+              >
+                📦 Gestión de Pedidos
+              </h1>
+              <p style={{ margin: "8px 0 0 0", color: "#666", fontSize: "14px" }}>
+                Administra y monitorea todos los pedidos en tiempo real
+              </p>
+            </div>
+            <div
               style={{
-                margin: 0,
-                fontSize: "32px",
-                fontWeight: "800",
-                color: "#1A1C20",
+                background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
+                color: "white",
+                padding: "12px 24px",
+                borderRadius: "12px",
+                fontWeight: "bold",
+                fontSize: "18px",
+                boxShadow: "0 4px 15px rgba(255, 102, 0, 0.3)",
               }}
             >
-              📦 Gestión de Pedidos
-            </h1>
-            <p style={{ margin: "8px 0 0 0", color: "#666", fontSize: "14px" }}>
-              Administra y monitorea todos los pedidos en tiempo real
-            </p>
+              Total: {pedidosMostrar.length} pedidos
+            </div>
           </div>
-          <div
-            style={{
-              background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
-              color: "white",
-              padding: "12px 24px",
-              borderRadius: "12px",
-              fontWeight: "bold",
-              fontSize: "18px",
-              boxShadow: "0 4px 15px rgba(255, 102, 0, 0.3)",
-            }}
-          >
-            Total: {pedidos.length} pedidos
+
+          {/* Botones de filtro */}
+          <div style={{ display: "flex", gap: "12px" }}>
+            <button
+              onClick={() => setMostrarCompletados(false)}
+              style={{
+                padding: "12px 24px",
+                background: !mostrarCompletados 
+                  ? "linear-gradient(135deg, #2196f3 0%, #1976d2 100%)" 
+                  : "white",
+                color: !mostrarCompletados ? "white" : "#666",
+                border: !mostrarCompletados ? "none" : "2px solid #e0e0e0",
+                borderRadius: "12px",
+                fontWeight: "700",
+                fontSize: "14px",
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+                boxShadow: !mostrarCompletados ? "0 4px 15px rgba(33, 150, 243, 0.3)" : "none",
+              }}
+            >
+              🔄 En Proceso ({pedidosEnProceso.length})
+            </button>
+            <button
+              onClick={() => setMostrarCompletados(true)}
+              style={{
+                padding: "12px 24px",
+                background: mostrarCompletados 
+                  ? "linear-gradient(135deg, #4caf50 0%, #388e3c 100%)" 
+                  : "white",
+                color: mostrarCompletados ? "white" : "#666",
+                border: mostrarCompletados ? "none" : "2px solid #e0e0e0",
+                borderRadius: "12px",
+                fontWeight: "700",
+                fontSize: "14px",
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+                boxShadow: mostrarCompletados ? "0 4px 15px rgba(76, 175, 80, 0.3)" : "none",
+              }}
+            >
+              ✅ Completados ({pedidosCompletados.length})
+            </button>
           </div>
         </div>
 
         {/* Grid de Pedidos */}
-        {pedidos.length === 0 ? (
+        {pedidosMostrar.length === 0 ? (
           <div
             style={{
               background: "white",
@@ -250,12 +356,18 @@ const Pedidos = () => {
               boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
             }}
           >
-            <div style={{ fontSize: "64px", marginBottom: "20px" }}>📭</div>
+            <div style={{ fontSize: "64px", marginBottom: "20px" }}>
+              {mostrarCompletados ? "📋" : "📭"}
+            </div>
             <h3 style={{ color: "#666", fontWeight: "600", margin: 0 }}>
-              No hay pedidos en este momento
+              {mostrarCompletados 
+                ? "No hay pedidos completados" 
+                : "No hay pedidos en proceso"}
             </h3>
             <p style={{ color: "#999", marginTop: "10px" }}>
-              Los nuevos pedidos aparecerán aquí
+              {mostrarCompletados 
+                ? "Los pedidos entregados y cancelados aparecerán aquí" 
+                : "Los nuevos pedidos aparecerán aquí"}
             </p>
           </div>
         ) : (
@@ -266,9 +378,12 @@ const Pedidos = () => {
               gap: "20px",
             }}
           >
-            {pedidos.map((p) => {
+            {pedidosMostrar.map((p) => {
               const estadoInfo = getEstadoInfo(p.estado);
               const nombreRepartidor = getNombreRepartidor(p.repartidorId);
+              const esEntregado = p.estado === 3;
+              
+              console.log(`Renderizando Pedido #${p.id} - Estado: ${p.estado} - Es entregado: ${esEntregado}`);
               
               return (
                 <div
@@ -358,7 +473,7 @@ const Pedidos = () => {
                     </div>
                   </div>
 
-                  {/* Repartidor Asignado (NUEVO) */}
+                  {/* Repartidor Asignado */}
                   {nombreRepartidor && (
                     <div
                       style={{
@@ -438,184 +553,180 @@ const Pedidos = () => {
                     ))}
                   </div>
 
-                  {/* Cambiar Estado */}
-                  <div style={{ marginBottom: "16px" }}>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: "12px",
-                        fontWeight: "700",
-                        color: "#666",
-                        marginBottom: "8px",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                      }}
-                    >
-                      ⚡ Cambiar Estado
-                    </label>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: "8px",
-                      }}
-                    >
-                      <button
-                        onClick={() => cambiarEstado(p.id, 1)}
-                        style={{
-                          padding: "10px",
-                          border: "2px solid #ffc107",
-                          background: p.estado === 1 ? "#ffc107" : "white",
-                          color: p.estado === 1 ? "white" : "#ffc107",
-                          borderRadius: "8px",
-                          fontWeight: "600",
-                          fontSize: "13px",
-                          cursor: "pointer",
-                          transition: "all 0.2s ease",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (p.estado !== 1) {
-                            e.target.style.background = "#fff8e1";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (p.estado !== 1) {
-                            e.target.style.background = "white";
-                          }
-                        }}
-                      >
-                        ⏳ Pendiente
-                      </button>
-                      <button
-                        onClick={() => cambiarEstado(p.id, 2)}
-                        style={{
-                          padding: "10px",
-                          border: "2px solid #2196f3",
-                          background: p.estado === 2 ? "#2196f3" : "white",
-                          color: p.estado === 2 ? "white" : "#2196f3",
-                          borderRadius: "8px",
-                          fontWeight: "600",
-                          fontSize: "13px",
-                          cursor: "pointer",
-                          transition: "all 0.2s ease",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (p.estado !== 2) {
-                            e.target.style.background = "#e3f2fd";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (p.estado !== 2) {
-                            e.target.style.background = "white";
-                          }
-                        }}
-                      >
-                        🚚 En camino
-                      </button>
-                      <button
-                        onClick={() => cambiarEstado(p.id, 3)}
-                        style={{
-                          padding: "10px",
-                          border: "2px solid #4caf50",
-                          background: p.estado === 3 ? "#4caf50" : "white",
-                          color: p.estado === 3 ? "white" : "#4caf50",
-                          borderRadius: "8px",
-                          fontWeight: "600",
-                          fontSize: "13px",
-                          cursor: "pointer",
-                          transition: "all 0.2s ease",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (p.estado !== 3) {
-                            e.target.style.background = "#e8f5e9";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (p.estado !== 3) {
-                            e.target.style.background = "white";
-                          }
-                        }}
-                      >
-                        ✅ Entregado
-                      </button>
-                      <button
-                        onClick={() => cambiarEstado(p.id, 4)}
-                        style={{
-                          padding: "10px",
-                          border: "2px solid #f44336",
-                          background: p.estado === 4 ? "#f44336" : "white",
-                          color: p.estado === 4 ? "white" : "#f44336",
-                          borderRadius: "8px",
-                          fontWeight: "600",
-                          fontSize: "13px",
-                          cursor: "pointer",
-                          transition: "all 0.2s ease",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (p.estado !== 4) {
-                            e.target.style.background = "#ffebee";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (p.estado !== 4) {
-                            e.target.style.background = "white";
-                          }
-                        }}
-                      >
-                        ❌ Cancelado
-                      </button>
-                    </div>
-                  </div>
+                  {/* Botón de Venta para pedidos entregados - SIEMPRE VISIBLE */}
+                  {esEntregado && (
+  <button
+    onClick={() => {
+      console.log("🚀 Navegando a Ventas con pedido:", p.id);
+      irAVentas(p.id);
+    }}
+    style={{
+      width: "100%",
+      padding: "14px",
+      background: "linear-gradient(135deg, #4caf50 0%, #388e3c 100%)",
+      color: "white",
+      border: "none",
+      borderRadius: "12px",
+      fontWeight: "700",
+      fontSize: "15px",
+      cursor: "pointer",
+      marginBottom: "16px",
+      transition: "all 0.3s ease",
+      boxShadow: "0 4px 15px rgba(76, 175, 80, 0.3)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "8px",
+    }}
+    onMouseEnter={(e) => {
+      e.target.style.transform = "translateY(-2px)";
+      e.target.style.boxShadow = "0 6px 20px rgba(76, 175, 80, 0.4)";
+    }}
+    onMouseLeave={(e) => {
+      e.target.style.transform = "translateY(0)";
+      e.target.style.boxShadow = "0 4px 15px rgba(76, 175, 80, 0.3)";
+    }}
+  >
+    <span style={{ fontSize: "18px" }}>💰</span>
+    Registrar Venta
+  </button>
+)}
 
-                  {/* Asignar Repartidor (MEJORADO) */}
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: "12px",
-                        fontWeight: "700",
-                        color: "#666",
-                        marginBottom: "8px",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                      }}
-                    >
-                      🚴 Asignar Repartidor
-                    </label>
-                    <select
-                      onChange={(e) =>
-                        asignarRepartidor(p.id, Number(e.target.value))
-                      }
-                      value={p.repartidorId || ""}
-                      style={{
-                        width: "100%",
-                        padding: "12px",
-                        border: "2px solid #e0e0e0",
-                        borderRadius: "8px",
-                        fontSize: "14px",
-                        fontWeight: "500",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        background: "white",
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = "#FF6600";
-                        e.target.style.outline = "none";
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = "#e0e0e0";
-                      }}
-                    >
-                      <option value="">
-                        Seleccionar repartidor...
-                      </option>
-                      {repartidores.map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {r.nombre}
+                  {/* Cambiar Estado - Solo para pedidos en proceso */}
+                  {!mostrarCompletados && (
+                    <div style={{ marginBottom: "16px" }}>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: "700",
+                          color: "#666",
+                          marginBottom: "8px",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                        }}
+                      >
+                        ⚡ Cambiar Estado
+                      </label>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: "8px",
+                        }}
+                      >
+                        <button
+                          onClick={() => cambiarEstado(p.id, 1)}
+                          style={{
+                            padding: "10px",
+                            border: "2px solid #ffc107",
+                            background: p.estado === 1 ? "#ffc107" : "white",
+                            color: p.estado === 1 ? "white" : "#ffc107",
+                            borderRadius: "8px",
+                            fontWeight: "600",
+                            fontSize: "13px",
+                            cursor: "pointer",
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          ⏳ Pendiente
+                        </button>
+                        <button
+                          onClick={() => cambiarEstado(p.id, 2)}
+                          style={{
+                            padding: "10px",
+                            border: "2px solid #2196f3",
+                            background: p.estado === 2 ? "#2196f3" : "white",
+                            color: p.estado === 2 ? "white" : "#2196f3",
+                            borderRadius: "8px",
+                            fontWeight: "600",
+                            fontSize: "13px",
+                            cursor: "pointer",
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          🚚 En camino
+                        </button>
+                        <button
+                          onClick={() => cambiarEstado(p.id, 3)}
+                          style={{
+                            padding: "10px",
+                            border: "2px solid #4caf50",
+                            background: p.estado === 3 ? "#4caf50" : "white",
+                            color: p.estado === 3 ? "white" : "#4caf50",
+                            borderRadius: "8px",
+                            fontWeight: "600",
+                            fontSize: "13px",
+                            cursor: "pointer",
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          ✅ Entregado
+                        </button>
+                        <button
+                          onClick={() => cambiarEstado(p.id, 4)}
+                          style={{
+                            padding: "10px",
+                            border: "2px solid #f44336",
+                            background: p.estado === 4 ? "#f44336" : "white",
+                            color: p.estado === 4 ? "white" : "#f44336",
+                            borderRadius: "8px",
+                            fontWeight: "600",
+                            fontSize: "13px",
+                            cursor: "pointer",
+                            transition: "all 0.2s ease",
+                          }}
+                        >
+                          ❌ Cancelado
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Asignar Repartidor - Solo para pedidos en proceso */}
+                  {!mostrarCompletados && (
+                    <div>
+                      <label
+                        style={{
+                          display: "block",
+                          fontSize: "12px",
+                          fontWeight: "700",
+                          color: "#666",
+                          marginBottom: "8px",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.5px",
+                        }}
+                      >
+                        🚴 Asignar Repartidor
+                      </label>
+                      <select
+                        onChange={(e) =>
+                          asignarRepartidor(p.id, Number(e.target.value))
+                        }
+                        value={p.repartidorId || ""}
+                        style={{
+                          width: "100%",
+                          padding: "12px",
+                          border: "2px solid #e0e0e0",
+                          borderRadius: "8px",
+                          fontSize: "14px",
+                          fontWeight: "500",
+                          cursor: "pointer",
+                          transition: "all 0.2s ease",
+                          background: "white",
+                        }}
+                      >
+                        <option value="">
+                          Seleccionar repartidor...
                         </option>
-                      ))}
-                    </select>
-                  </div>
+                        {repartidores.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               );
             })}

@@ -10,7 +10,6 @@ import {
   CFormTextarea,
   CCard,
   CCardBody,
-  // CCardHeader, // Se puede remover si no se usa
 } from '@coreui/react'
 
 const AgregarInsumos = () => {
@@ -29,26 +28,21 @@ const AgregarInsumos = () => {
 
   const convertirUnidad = (unidadTexto) => {
     switch (unidadTexto) {
-      case "kg": return 0;
-      case "litros": return 1;
-      case "g": return 2;
-      case "unidades": return 3;
-      default: return 3;
+      case "kg": return "Kg";
+      case "g": return "g";
+      case "litros": return "L";
+      case "ml": return "ml";
+      case "unidades":
+      case "piezas":
+      case "cajas":
+      case "paquetes":
+        return "Uds";
+      default:
+        return "Uds";
     }
-  };
+  }
 
-  const coloresDisponibles = [
-    { value: 'primary', label: 'Azul' },
-    { value: 'secondary', label: 'Gris' },
-    { value: 'success', label: 'Verde' },
-    { value: 'danger', label: 'Rojo' },
-    { value: 'warning', label: 'Amarillo' },
-    { value: 'info', label: 'Cian' },
-    { value: 'dark', label: 'Negro' }
-  ]
-
-  const emojisComunes = ['🌾', '🍬', '🥚', '🧈', '🥛', '🍫', '🌼', '🧂', '🫙', '🌿', '🍯', '🥜', '🥄', '🍞', '🥖', '🧁', '🍰', '☕', '🧃', '🥤']
-
+  
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData({
@@ -57,20 +51,109 @@ const AgregarInsumos = () => {
     })
   }
 
+  // 🔍 Función para decodificar y ver el token
+  const verificarToken = () => {
+    const token = localStorage.getItem("token");
+    const roles = localStorage.getItem("roles");
+    
+    if (!token) {
+      alert("❌ No hay token");
+      return;
+    }
+    
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      console.log("📋 Contenido completo del token:", payload);
+      console.log("🔑 Roles en localStorage:", roles);
+      
+      // Buscar el claim de rol (puede tener diferentes nombres)
+      const roleClaim = payload.role || 
+                       payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+                       payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role"];
+      
+      alert(`🔍 DIAGNÓSTICO DEL TOKEN:\n\n` +
+            `Roles en el token JWT: ${roleClaim || 'NO ENCONTRADO ❌'}\n\n` +
+            `Roles en localStorage: ${roles}\n\n` +
+            `Usuario ID: ${payload.nameid || payload.sub || 'N/A'}\n\n` +
+            `El problema es: ${!roleClaim ? 'El token NO contiene roles. Necesitas regenerar el token.' : 'El token SÍ tiene roles ✅'}`);
+    } catch (error) {
+      console.error("Error al decodificar:", error);
+      alert("❌ Error al decodificar el token");
+    }
+  };
+
+  // 🔧 Función para cambiar rol a Administrador (solo para pruebas)
+  const cambiarAAdministrador = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("⚠️ No hay token");
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const userId = payload.nameid || payload.sub || payload["http://schemas.xmlsoap.org/ws/2008/06/identity/claims/nameidentifier"];
+
+      if (!userId) {
+        alert("❌ No se pudo obtener el ID de usuario del token");
+        return;
+      }
+
+      const response = await fetch("https://pizzahub-api.onrender.com/api/v1/auth/cambiar-rol", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          usuarioId: parseInt(userId),
+          nuevoRol: "Administrador"
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        alert(`❌ Error: ${error}`);
+        return;
+      }
+
+      const result = await response.json();
+      alert(`✅ ${result.message}\n\n⚠️ IMPORTANTE: Debes cerrar sesión y volver a iniciar sesión para que el nuevo rol se aplique al token.`);
+      
+    } catch (error) {
+      console.error("Error:", error);
+      alert("❌ Error al cambiar el rol");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const token = localStorage.getItem("token");
 
-    // Lógica para unidades, manteniendo la original
-    const unidadNumero = convertirUnidad(formData.unidad);
+    if (!token) {
+      alert("⚠️ No hay token de autenticación. Por favor inicia sesión.");
+      return;
+    }
 
+    if (!formData.nombre || !formData.cantidad || !formData.unidad) {
+      alert("Completa los campos obligatorios: Nombre, Cantidad y Unidad");
+      return;
+    }
+
+    // Convertir la unidad a la forma correcta
+    const unidadTexto = convertirUnidad(formData.unidad);
+
+    // Crear el objeto con el formato exacto que espera el DTO
     const data = {
-      nombre: formData.nombre,
-      unidadMedida: unidadNumero,
-      stockInicial: parseFloat(formData.cantidad),
+      nombre: formData.nombre.trim(),
+      unidadMedida: unidadTexto,
+      stockInicial: parseFloat(formData.cantidad) || 0,
       stockMinimo: 10
     };
+
+    console.log("📤 Enviando datos:", data);
+    console.log("🔑 Token (primeros 20 chars):", token.substring(0, 20) + "...");
 
     try {
       const response = await fetch("https://pizzahub-api.onrender.com/api/Insumos", {
@@ -82,27 +165,80 @@ const AgregarInsumos = () => {
         body: JSON.stringify(data)
       });
 
+      console.log("📥 Status de respuesta:", response.status);
+
       if (!response.ok) {
-        console.error("Error API:", response.status);
-        alert("No se pudo registrar el insumo");
+        // Clonar la respuesta para poder leerla múltiples veces
+        const responseClone = response.clone();
+        let errorMessage = `Error ${response.status}`;
+        
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.title || JSON.stringify(errorData);
+          console.error("❌ Error del servidor:", errorData);
+        } catch {
+          try {
+            const errorText = await responseClone.text();
+            errorMessage = errorText || errorMessage;
+            console.error("❌ Error (texto):", errorText);
+          } catch (err) {
+            console.error("❌ No se pudo leer el error:", err);
+          }
+        }
+
+        if (response.status === 403) {
+          alert(`🚫 Error 403: Acceso denegado\n\nTu token no tiene el rol "Administrador" o "Empleado" necesario.\n\nPor favor verifica con el administrador del sistema.`);
+        } else if (response.status === 401) {
+          alert(`🔒 Error 401: No autorizado\n\nTu sesión puede haber expirado. Por favor inicia sesión nuevamente.`);
+        } else {
+          alert(`❌ Error ${response.status}: ${errorMessage}`);
+        }
         return;
       }
 
-      alert("Insumo registrado correctamente");
-      console.log("Respuesta API:", await response.json());
+      const resultado = await response.json();
+      console.log("✅ Insumo creado:", resultado);
+      
+      alert(`✅ Insumo registrado correctamente!\n\nID: ${resultado.id}\nNombre: ${resultado.nombre}\nStock: ${resultado.stockActual} ${resultado.unidadMedida}`);
+      
+      // Resetear formulario
+      setFormData({
+        nombre: "",
+        cantidad: "",
+        unidad: "",
+        proveedor: "",
+        caducidad: "",
+        costo: "",
+        tipoIcono: "emoji",
+        imagen: "",
+        color: "primary",
+        notas: ""
+      });
 
     } catch (error) {
-      console.error("Error en POST:", error);
-      alert("Ocurrió un error al enviar el insumo");
+      console.error("💥 Error en POST:", error);
+      alert("Error al conectar con el servidor. Revisa la consola para más detalles.");
     }
-  };
-
-  const handleCancel = () => {
-    console.log('Cancelar registro')
-    // Puedes agregar aquí la lógica de navegación o reseteo
   }
 
-  // Estilos base para campos de formulario
+  const handleCancel = () => {
+    if (window.confirm("¿Deseas cancelar y limpiar el formulario?")) {
+      setFormData({
+        nombre: "",
+        cantidad: "",
+        unidad: "",
+        proveedor: "",
+        caducidad: "",
+        costo: "",
+        tipoIcono: "emoji",
+        imagen: "",
+        color: "primary",
+        notas: ""
+      });
+    }
+  }
+
+  // Estilos base
   const formInputStyle = {
     padding: '12px 16px',
     fontSize: '15px',
@@ -112,20 +248,16 @@ const AgregarInsumos = () => {
     transition: 'all 0.2s ease',
   }
 
- 
-
-  // Estilos para etiquetas
   const formLabelStyle = {
     fontSize: '13px',
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
-    color: '#555', // Gris oscuro para la etiqueta
+    color: '#555',
     marginBottom: '8px',
   }
 
-  // Color principal para títulos y líneas divisorias
-  const primaryColor = '#FF6600'; // Naranja PizzaHub
+  const primaryColor = '#FF6600';
 
   return (
     <div
@@ -136,9 +268,8 @@ const AgregarInsumos = () => {
       }}
     >
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        {/* Header con Sombra Suave */}
+        {/* Header */}
         <div
-          className="fade-in"
           style={{
             background: 'white',
             borderRadius: '20px',
@@ -162,9 +293,38 @@ const AgregarInsumos = () => {
           <p style={{ margin: 0, color: '#777', fontSize: '16px' }}>
             Introduce la información del nuevo insumo para añadirlo al inventario.
           </p>
+                  <div style={{ 
+            marginTop: '12px', 
+            padding: '8px 12px', 
+            background: '#fff3cd', 
+            borderRadius: '8px',
+            fontSize: '13px',
+            color: '#856404',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            <span>🔧 <strong>Modo Diagnóstico:</strong> Verifica tu token</span>
+            <button
+              type="button"
+              onClick={verificarToken}
+              style={{
+                padding: '4px 12px',
+                background: '#FF6600',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              🔍 Ver Token
+            </button>
+          </div>
         </div>
 
-        {/* Formulario Principal en Card */}
+        {/* Formulario */}
         <CCard
           style={{
             border: 'none',
@@ -176,7 +336,7 @@ const AgregarInsumos = () => {
           <CCardBody style={{ padding: '40px' }}>
             <CForm onSubmit={handleSubmit}>
               <CRow className="g-4">
-                {/* Título: Información Básica */}
+                {/* Información Básica */}
                 <CCol xs={12}>
                   <h5
                     style={{
@@ -193,7 +353,7 @@ const AgregarInsumos = () => {
                   </h5>
                 </CCol>
 
-                {/* Nombre del Insumo */}
+                {/* Nombre */}
                 <CCol md={6}>
                   <CFormLabel htmlFor="nombre" style={formLabelStyle}>
                     Nombre del Insumo *
@@ -205,14 +365,8 @@ const AgregarInsumos = () => {
                     placeholder="Ej: Harina de trigo"
                     value={formData.nombre}
                     onChange={handleInputChange}
+                    required
                     style={formInputStyle}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = primaryColor
-                      e.target.style.outline = 'none'
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#e0e0e0'
-                    }}
                   />
                 </CCol>
 
@@ -223,23 +377,18 @@ const AgregarInsumos = () => {
                   </CFormLabel>
                   <CFormInput
                     type="number"
+                    step="0.01"
                     id="cantidad"
                     name="cantidad"
                     placeholder="Ej: 50"
                     value={formData.cantidad}
                     onChange={handleInputChange}
+                    required
                     style={{...formInputStyle, fontWeight: '600'}}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = primaryColor
-                      e.target.style.outline = 'none'
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#e0e0e0'
-                    }}
                   />
                 </CCol>
 
-                {/* Unidad de Medida */}
+                {/* Unidad */}
                 <CCol md={3}>
                   <CFormLabel htmlFor="unidad" style={formLabelStyle}>
                     Unidad *
@@ -249,14 +398,8 @@ const AgregarInsumos = () => {
                     name="unidad"
                     value={formData.unidad}
                     onChange={handleInputChange}
+                    required
                     style={{...formInputStyle, fontWeight: '600', cursor: 'pointer'}}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = primaryColor
-                      e.target.style.outline = 'none'
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#e0e0e0'
-                    }}
                   >
                     <option value="">Seleccionar...</option>
                     <option value="kg">⚖️ Kilogramos (kg)</option>
@@ -270,214 +413,6 @@ const AgregarInsumos = () => {
                   </CFormSelect>
                 </CCol>
 
-                {/* Título: Detalles Adicionales */}
-                <CCol xs={12}>
-                  <h5
-                    style={{
-                      fontSize: '18px',
-                      fontWeight: '700',
-                      color: primaryColor,
-                      marginTop: '20px',
-                      marginBottom: '20px',
-                      paddingBottom: '12px',
-                      borderBottom: `2px solid ${primaryColor}`,
-                      fontFamily: "'Inter', sans-serif",
-                    }}
-                  >
-                    📦 Información de Abastecimiento
-                  </h5>
-                </CCol>
-
-                {/* Proveedor */}
-                <CCol md={6}>
-                  <CFormLabel htmlFor="proveedor" style={formLabelStyle}>
-                    Proveedor
-                  </CFormLabel>
-                  <CFormInput
-                    type="text"
-                    id="proveedor"
-                    name="proveedor"
-                    placeholder="Nombre del proveedor"
-                    value={formData.proveedor}
-                    onChange={handleInputChange}
-                    style={formInputStyle}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = primaryColor
-                      e.target.style.outline = 'none'
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#e0e0e0'
-                    }}
-                  />
-                </CCol>
-
-                {/* Fecha de Caducidad */}
-                <CCol md={3}>
-                  <CFormLabel htmlFor="caducidad" style={formLabelStyle}>
-                    Fecha de Caducidad
-                  </CFormLabel>
-                  <CFormInput
-                    type="date"
-                    id="caducidad"
-                    name="caducidad"
-                    value={formData.caducidad}
-                    onChange={handleInputChange}
-                    style={{...formInputStyle, cursor: 'pointer'}}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = primaryColor
-                      e.target.style.outline = 'none'
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#e0e0e0'
-                    }}
-                  />
-                </CCol>
-
-                {/* Costo Unitario */}
-                <CCol md={3}>
-                  <CFormLabel htmlFor="costo" style={formLabelStyle}>
-                    Costo Unitario
-                  </CFormLabel>
-                  <CFormInput
-                    type="number"
-                    step="0.01"
-                    id="costo"
-                    name="costo"
-                    placeholder="$0.00"
-                    value={formData.costo}
-                    onChange={handleInputChange}
-                    style={{...formInputStyle, fontWeight: '600'}}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = primaryColor
-                      e.target.style.outline = 'none'
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#e0e0e0'
-                    }}
-                  />
-                </CCol>
-
-                {/* Título: Personalización Visual */}
-                <CCol xs={12}>
-                  <h5
-                    style={{
-                      fontSize: '18px',
-                      fontWeight: '700',
-                      color: primaryColor,
-                      marginTop: '20px',
-                      marginBottom: '20px',
-                      paddingBottom: '12px',
-                      borderBottom: `2px solid ${primaryColor}`,
-                      fontFamily: "'Inter', sans-serif",
-                    }}
-                  >
-                    🎨 Personalización Visual
-                  </h5>
-                </CCol>
-
-                {/* Tipo de Icono */}
-                <CCol md={4}>
-                  <CFormLabel htmlFor="tipoIcono" style={formLabelStyle}>
-                    Tipo de Icono
-                  </CFormLabel>
-                  <CFormSelect
-                    id="tipoIcono"
-                    name="tipoIcono"
-                    value={formData.tipoIcono}
-                    onChange={handleInputChange}
-                    style={{...formInputStyle, fontWeight: '600', cursor: 'pointer'}}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = primaryColor
-                      e.target.style.outline = 'none'
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#e0e0e0'
-                    }}
-                  >
-                    <option value="emoji"> Emoji</option>
-                    <option value="imagen"> URL de Imagen</option>
-                  </CFormSelect>
-                </CCol>
-
-                {/* Imagen/Emoji (Lógica de visualización mantenida) */}
-                {formData.tipoIcono === 'emoji' ? (
-                  <CCol md={4}>
-                    <CFormLabel htmlFor="imagen" style={formLabelStyle}>
-                      Seleccionar Emoji
-                    </CFormLabel>
-                    <CFormSelect
-                      id="imagen"
-                      name="imagen"
-                      value={formData.imagen}
-                      onChange={handleInputChange}
-                      style={{...formInputStyle, fontWeight: '600', cursor: 'pointer'}}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = primaryColor
-                        e.target.style.outline = 'none'
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = '#e0e0e0'
-                      }}
-                    >
-                      <option value="">Seleccionar emoji...</option>
-                      {emojisComunes.map((emoji, index) => (
-                        <option key={index} value={emoji}>
-                          {emoji} {emoji.replace(/\s/g, "")}
-                        </option>
-                      ))}
-                    </CFormSelect>
-                  </CCol>
-                ) : (
-                  <CCol md={4}>
-                    <CFormLabel htmlFor="imagen" style={formLabelStyle}>
-                      URL de la Imagen
-                    </CFormLabel>
-                    <CFormInput
-                      type="text"
-                      id="imagen"
-                      name="imagen"
-                      placeholder="https://ejemplo.com/imagen.jpg"
-                      value={formData.imagen}
-                      onChange={handleInputChange}
-                      style={formInputStyle}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = primaryColor
-                        e.target.style.outline = 'none'
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.borderColor = '#e0e0e0'
-                      }}
-                    />
-                  </CCol>
-                )}
-
-                {/* Color */}
-                <CCol md={4}>
-                  <CFormLabel htmlFor="color" style={formLabelStyle}>
-                    Color de la Tarjeta
-                  </CFormLabel>
-                  <CFormSelect
-                    id="color"
-                    name="color"
-                    value={formData.color}
-                    onChange={handleInputChange}
-                    style={{...formInputStyle, fontWeight: '600', cursor: 'pointer'}}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = primaryColor
-                      e.target.style.outline = 'none'
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#e0e0e0'
-                    }}
-                  >
-                    {coloresDisponibles.map((color) => (
-                      <option key={color.value} value={color.value}>
-                        {color.label}
-                      </option>
-                    ))}
-                  </CFormSelect>
-                </CCol>
-
                 {/* Vista Previa */}
                 <CCol xs={12}>
                   <CFormLabel style={{...formLabelStyle, marginTop: '15px'}}>
@@ -487,15 +422,13 @@ const AgregarInsumos = () => {
                     style={{
                       padding: '25px',
                       borderRadius: '16px',
-                      background: '#f1f1f1', // Fondo más neutral para la vista previa
+                      background: '#f8f9fa',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '20px',
-                      border: '1px solid #ddd',
-                      transition: 'all 0.3s ease',
+                      border: '2px dashed #dee2e6',
                     }}
                   >
-                    {/* Icono/Imagen */}
                     <div style={{ 
                       fontSize: '48px', 
                       display: 'flex', 
@@ -504,60 +437,25 @@ const AgregarInsumos = () => {
                       width: '80px',
                       height: '80px',
                       borderRadius: '12px',
-                      // Estilo de tarjeta de color
-                      backgroundColor: `var(--cui-${formData.color})`, // Usa la variable CSS de CoreUI
-                      boxShadow: `0 4px 8px rgba(var(--cui-${formData.color}-rgb), 0.3)`,
+                      backgroundColor: '#FF6600',
+                      boxShadow: '0 4px 8px rgba(255, 102, 0, 0.3)',
                     }}>
-                      {formData.tipoIcono === 'emoji' && formData.imagen ? (
-                        <span style={{ filter: 'grayscale(0.1)' }}>{formData.imagen}</span>
-                      ) : formData.tipoIcono === 'imagen' && formData.imagen ? (
-                        <img src={formData.imagen} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }} />
-                      ) : (
-                        <span style={{color: 'white', fontSize: '32px'}}>❓</span>
-                      )}
+                      <span style={{ filter: 'grayscale(0.1)' }}>📦</span>
                     </div>
-                    {/* Detalles */}
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: '700', fontSize: '22px', color: '#333', marginBottom: '4px', fontFamily: "'Inter', sans-serif" }}>
+                      <div style={{ fontWeight: '700', fontSize: '22px', color: '#333', marginBottom: '4px' }}>
                         {formData.nombre || 'Nombre del Insumo'}
                       </div>
                       <div style={{ color: '#555', fontSize: '16px', fontWeight: '500' }}>
                         {formData.cantidad && formData.unidad
-                          ? `Stock Inicial: ${formData.cantidad} ${formData.unidad}`
-                          : 'Cantidad y unidad'}
+                          ? `Stock Inicial: ${formData.cantidad} ${convertirUnidad(formData.unidad)}`
+                          : 'Ingresa cantidad y unidad'}
                       </div>
-                      <span className={`badge bg-${formData.color}`} style={{ padding: '6px 10px', fontSize: '12px', marginTop: '8px' }}>
-                        {coloresDisponibles.find(c => c.value === formData.color)?.label || 'Sin color'}
-                      </span>
                     </div>
                   </div>
                 </CCol>
 
-
-                {/* Notas Adicionales */}
-                <CCol xs={12}>
-                  <CFormLabel htmlFor="notas" style={{...formLabelStyle, marginTop: '15px'}}>
-                    📝 Notas Adicionales (Opcional)
-                  </CFormLabel>
-                  <CFormTextarea
-                    id="notas"
-                    name="notas"
-                    rows="4"
-                    placeholder="Información adicional sobre el insumo, detalles de almacenamiento, etc."
-                    value={formData.notas}
-                    onChange={handleInputChange}
-                    style={{...formInputStyle, resize: 'vertical'}}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = primaryColor
-                      e.target.style.outline = 'none'
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#e0e0e0'
-                    }}
-                  />
-                </CCol>
-
-                {/* Botones de Acción */}
+                {/* Botones */}
                 <CCol xs={12}>
                   <div
                     style={{
@@ -569,8 +467,8 @@ const AgregarInsumos = () => {
                       borderTop: '1px solid #e9ecef',
                     }}
                   >
-                    {/* Botón Cancelar */}
                     <CButton
+                      type="button"
                       color="light"
                       onClick={handleCancel}
                       style={{
@@ -580,15 +478,10 @@ const AgregarInsumos = () => {
                         fontSize: '15px',
                         border: '1px solid #ddd',
                         color: '#444',
-                        backgroundColor: 'white',
-                        transition: 'all 0.2s ease',
                       }}
-                      onMouseEnter={(e) => { e.target.style.backgroundColor = '#f1f1f1'; }}
-                      onMouseLeave={(e) => { e.target.style.backgroundColor = 'white'; }}
                     >
                       Cancelar
                     </CButton>
-                    {/* Botón Registrar Insumo */}
                     <CButton
                       type="submit"
                       style={{
@@ -600,15 +493,6 @@ const AgregarInsumos = () => {
                         border: 'none',
                         color: 'white',
                         boxShadow: '0 4px 15px rgba(255, 102, 0, 0.4)',
-                        transition: 'all 0.3s ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'translateY(-2px)'
-                        e.target.style.boxShadow = '0 6px 20px rgba(255, 102, 0, 0.5)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'translateY(0)'
-                        e.target.style.boxShadow = '0 4px 15px rgba(255, 102, 0, 0.4)'
                       }}
                     >
                       ✅ Registrar Insumo

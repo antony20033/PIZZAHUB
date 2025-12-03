@@ -16,6 +16,9 @@ const RegistroEmpleados = React.lazy(() => import('./pages/RegistroEmpleados'))
 const Caja = React.lazy(() => import('./pages/Caja'))
 const Ventas = React.lazy(() => import('./pages/Ventas'))
 const VistaRepartidores = React.lazy(() => import('./pages/VistaRepartidores')) 
+const RegistrarProductos = React.lazy(() => import('./pages/RegistrarProductos'))
+
+
 
 const routes = [
     { path: '/', exact: true, name: 'home' },
@@ -35,6 +38,7 @@ const routes = [
     { path: '/pages/Caja', name: 'Caja', element: Caja },
     { path: '/pages/VistaRepartidores', name: 'VistaRepartidores', element: VistaRepartidores, repartidorOnly: true },
     { path: '/pages/Ventas', name: 'Ventas', element: Ventas },
+    { path: '/pages/RegistrarProductos', name: 'RegistrarProductos', element: RegistrarProductos },
 ]
 
 // Función para filtrar rutas según el rol

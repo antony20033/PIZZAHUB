@@ -1,14 +1,44 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import {
+  CCard,
+  CCardHeader,
+  CCardBody,
+  CTable,
+  CTableHead,
+  CTableRow,
+  CTableHeaderCell,
+  CTableBody,
+  CTableDataCell,
+  CButton,
+  CModal,
+  CModalHeader,
+  CModalTitle,
+  CModalBody,
+  CForm,
+  CRow,
+  CCol,
+  CFormLabel,
+  CFormInput,
+  CFormSelect,
+  CBadge,
+  CSpinner,
+  CAlert
+} from "@coreui/react";
 
 const Ventas = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const pedidoIdFromUrl = searchParams.get("pedidoId");
+
   const [ventas, setVentas] = useState([]);
   const [pedidos, setPedidos] = useState([]);
   const [cajas, setCajas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
-  const [filtroFecha, setFiltroFecha] = useState("hoy");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [filtroFecha, setFiltroFecha] = useState("todas");
+  const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
   
-  // Estado del formulario
   const [nuevaVenta, setNuevaVenta] = useState({
     cajaId: "",
     pedidoId: "",
@@ -25,16 +55,13 @@ const Ventas = () => {
   const fetchVentas = async () => {
     try {
       setLoading(true);
-      const response = await fetch("https://localhost:7188/api/Ventas", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      const response = await fetch("https://pizzahub-api.onrender.com/api/Ventas", {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (!response.ok) throw new Error("Error al obtener ventas");
 
       const data = await response.json();
-      console.log("Ventas:", data);
       setVentas(data);
     } catch (error) {
       console.error("Error cargando ventas:", error);
@@ -49,50 +76,166 @@ const Ventas = () => {
   // -------------------------------
   const fetchPedidos = async () => {
     try {
-      const response = await fetch("https://localhost:7188/api/PedidosNew", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      const response = await fetch("https://pizzahub-api.onrender.com/api/PedidosNew", {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (!response.ok) throw new Error("Error al obtener pedidos");
 
       const data = await response.json();
-      // Filtrar solo pedidos entregados (estado 3)
-      const pedidosEntregados = data.filter(p => p.estado === 3);
+      // Filtrar pedidos entregados (estado 3)
+      const pedidosEntregados = data.filter(p => {
+        const estado = typeof p.estado === 'string' ? parseInt(p.estado) : p.estado;
+        return estado === 3;
+      });
+      console.log("Pedidos entregados:", pedidosEntregados);
       setPedidos(pedidosEntregados);
+      return pedidosEntregados;
     } catch (error) {
       console.error("Error cargando pedidos:", error);
+      return [];
     }
   };
 
   // -------------------------------
-  // CARGAR CAJAS ABIERTAS
+  // CARGAR CAJA ABIERTA
   // -------------------------------
   const fetchCajas = async () => {
     try {
-      const response = await fetch("https://localhost:7188/api/Cajas", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      const responseAbierta = await fetch("https://pizzahub-api.onrender.com/api/Caja/abierta", {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-      if (!response.ok) throw new Error("Error al obtener cajas");
+      if (responseAbierta.ok) {
+        const caja = await responseAbierta.json();
+        console.log("Caja abierta encontrada:", caja);
+        setCajas([caja]);
+        return [caja];
+      }
 
-      const data = await response.json();
-      // Filtrar solo cajas abiertas (estado 1)
+      console.log("No hay caja abierta, intentando listar todas...");
+      const responseAll = await fetch("https://pizzahub-api.onrender.com/api/Caja", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!responseAll.ok) {
+        throw new Error("Error al obtener cajas");
+      }
+
+      const data = await responseAll.json();
+      console.log("Todas las cajas:", data);
+      
       const cajasAbiertas = data.filter(c => c.estado === 1);
+      console.log("Cajas filtradas (estado=1):", cajasAbiertas);
       setCajas(cajasAbiertas);
+      return cajasAbiertas;
+
     } catch (error) {
-      console.error("Error cargando cajas:", error);
+      console.error("Error cargando caja:", error);
+      setCajas([]);
+      return [];
     }
   };
 
-  useEffect(() => {
-    fetchVentas();
-    fetchPedidos();
-    fetchCajas();
-  }, []);
+  // -------------------------------
+  // CARGAR DATOS Y VERIFICAR PEDIDO DE URL
+  // -------------------------------
+useEffect(() => {
+  const cargarDatos = async () => {
+    console.log("🔍 Iniciando carga de datos...");
+    console.log("📋 Parámetro pedidoId de URL:", pedidoIdFromUrl);
+    
+    await fetchVentas();
+    const pedidosData = await fetchPedidos();
+    const cajasData = await fetchCajas();
+
+    console.log("📦 Pedidos cargados:", pedidosData.length);
+    console.log("🏦 Cajas cargadas:", cajasData.length);
+
+    // Si hay pedidoId en la URL, abrir modal con datos precargados
+    if (pedidoIdFromUrl && pedidosData.length > 0) {
+      const pedidoIdNum = parseInt(pedidoIdFromUrl);
+      console.log("🔍 Buscando pedido con ID:", pedidoIdNum);
+      
+      const pedido = pedidosData.find(p => p.id === pedidoIdNum);
+      
+      if (pedido) {
+        console.log("✅ Pedido encontrado:", pedido);
+        setPedidoSeleccionado(pedido);
+        
+        // Obtener empleadoId de la caja si existe
+        const empleadoIdCaja = cajasData.length > 0 && cajasData[0].empleado 
+          ? cajasData[0].empleado.id.toString() 
+          : "";
+
+        console.log("👤 Empleado ID de caja:", empleadoIdCaja);
+        
+        // Precargar datos en el formulario
+        const datosVenta = {
+          cajaId: cajasData.length > 0 ? cajasData[0].id.toString() : "",
+          pedidoId: pedido.id.toString(),
+          empleadoId: empleadoIdCaja,
+          metodoPago: 1,
+          total: pedido.total
+        };
+
+        console.log("📝 Precargando formulario con:", datosVenta);
+        setNuevaVenta(datosVenta);
+        
+        // Abrir el modal después de un pequeño delay para asegurar que todo se renderice
+        setTimeout(() => {
+          console.log("🎬 Abriendo modal...");
+          setModalVisible(true);
+        }, 100);
+        
+      } else {
+        console.error("❌ Pedido no encontrado en la lista de entregados");
+        console.log("IDs disponibles:", pedidosData.map(p => p.id));
+        alert(`⚠️ El pedido #${pedidoIdFromUrl} no existe o no está en estado Entregado`);
+        // Limpiar el parámetro de la URL
+        navigate("/ventas", { replace: true });
+      }
+    } else if (pedidoIdFromUrl && pedidosData.length === 0) {
+      console.warn("⚠️ Se recibió pedidoId pero no hay pedidos entregados");
+      alert("⚠️ No hay pedidos entregados disponibles");
+      navigate("/ventas", { replace: true });
+    }
+  };
+
+  cargarDatos();
+}, [pedidoIdFromUrl, navigate]); // Agregar navigate como dependencia
+  // -------------------------------
+  // ABRIR CAJA MANUALMENTE
+  // -------------------------------
+  const abrirCajaManual = async () => {
+    const empleadoId = prompt("Ingresa el ID del empleado para abrir la caja:");
+    if (!empleadoId) return;
+
+    try {
+      const response = await fetch("https://pizzahub-api.onrender.com/api/Caja/abrir", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          empleadoId: parseInt(empleadoId),
+          saldoInicial: 0
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al abrir caja");
+      }
+
+      alert("✅ Caja abierta exitosamente");
+      fetchCajas();
+    } catch (error) {
+      console.error("Error abriendo caja:", error);
+      alert("❌ Error: " + error.message);
+    }
+  };
 
   // -------------------------------
   // REGISTRAR VENTA
@@ -104,28 +247,34 @@ const Ventas = () => {
     }
 
     try {
-      const response = await fetch("https://localhost:7188/api/Ventas", {
+      const dataToSend = {
+        cajaId: parseInt(nuevaVenta.cajaId),
+        pedidoId: parseInt(nuevaVenta.pedidoId),
+        empleadoId: parseInt(nuevaVenta.empleadoId),
+        metodoPago: parseInt(nuevaVenta.metodoPago),
+        total: parseFloat(nuevaVenta.total)
+      };
+
+      console.log("Enviando venta:", dataToSend);
+
+      const response = await fetch("https://pizzahub-api.onrender.com/api/Ventas", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-          cajaId: parseInt(nuevaVenta.cajaId),
-          pedidoId: parseInt(nuevaVenta.pedidoId),
-          empleadoId: parseInt(nuevaVenta.empleadoId),
-          metodoPago: parseInt(nuevaVenta.metodoPago),
-          total: parseFloat(nuevaVenta.total)
-        })
+        body: JSON.stringify(dataToSend)
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error registrando venta: ${errorText}`);
+        const errorData = await response.json();
+        console.error("Error del servidor:", errorData);
+        throw new Error(errorData.message || "Error registrando venta");
       }
 
       alert("✅ Venta registrada exitosamente");
-      setMostrarFormulario(false);
+      setModalVisible(false);
+      setPedidoSeleccionado(null);
       setNuevaVenta({
         cajaId: "",
         pedidoId: "",
@@ -133,30 +282,38 @@ const Ventas = () => {
         metodoPago: 1,
         total: 0
       });
+      
+      // Limpiar URL si venía con pedidoId
+      if (pedidoIdFromUrl) {
+        navigate("/ventas", { replace: true });
+      }
+      
       fetchVentas();
       fetchPedidos();
     } catch (error) {
       console.error("Error registrando venta:", error);
-      alert("❌ Error al registrar venta: " + error.message);
+      alert("❌ Error: " + error.message);
     }
   };
 
   // -------------------------------
-  // OBTENER MÉTODO DE PAGO
+  // OBTENER BADGE DE MÉTODO DE PAGO
   // -------------------------------
-  const getMetodoPago = (metodo) => {
-    switch (metodo) {
-      case 1: return { text: "Efectivo", icon: "💵", color: "#4caf50" };
-      case 2: return { text: "Tarjeta", icon: "💳", color: "#2196f3" };
-      case 3: return { text: "Transferencia", icon: "🏦", color: "#9c27b0" };
-      default: return { text: "Desconocido", icon: "❓", color: "#999" };
-    }
+  const getMetodoPagoBadge = (metodo) => {
+    const metodos = {
+      1: { color: "success", icon: "💵", text: "Efectivo" },
+      2: { color: "primary", icon: "💳", text: "Tarjeta" },
+      3: { color: "info", icon: "🏦", text: "Transferencia" }
+    };
+    return metodos[metodo] || { color: "secondary", icon: "❓", text: "Desconocido" };
   };
 
   // -------------------------------
   // FILTRAR VENTAS POR FECHA
   // -------------------------------
   const ventasFiltradas = ventas.filter(v => {
+    if (filtroFecha === "todas") return true;
+    
     const fechaVenta = new Date(v.fechaVenta);
     const hoy = new Date();
     
@@ -173,13 +330,12 @@ const Ventas = () => {
     return true;
   });
 
-  // Calcular total de ventas
   const totalVentas = ventasFiltradas.reduce((sum, v) => sum + v.total, 0);
 
-  // Manejar cambio en pedido seleccionado
   const handlePedidoChange = (pedidoId) => {
     const pedido = pedidos.find(p => p.id === parseInt(pedidoId));
     if (pedido) {
+      setPedidoSeleccionado(pedido);
       setNuevaVenta({
         ...nuevaVenta,
         pedidoId: pedidoId,
@@ -188,106 +344,273 @@ const Ventas = () => {
     }
   };
 
+  const handleCerrarModal = () => {
+    setModalVisible(false);
+    setPedidoSeleccionado(null);
+    setNuevaVenta({
+      cajaId: "",
+      pedidoId: "",
+      empleadoId: "",
+      metodoPago: 1,
+      total: 0
+    });
+    
+    // Limpiar URL si venía con pedidoId
+    if (pedidoIdFromUrl) {
+      navigate("/ventas", { replace: true });
+    }
+  };
+
+  // Estilos
+  const inputStyle = {
+    padding: "12px",
+    borderRadius: "10px",
+    border: "2px solid #E5E7EB",
+    transition: "0.25s",
+  };
+
+  const inputFocus = (e) => (e.target.style.borderColor = "#FF6600");
+  const inputBlur = (e) => (e.target.style.borderColor = "#E5E7EB");
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)",
-        padding: "30px 20px",
-      }}
-    >
-      <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
-        
-        {/* Header */}
-        <div
-          style={{
-            background: "white",
-            borderRadius: "20px",
-            padding: "30px",
-            marginBottom: "30px",
-            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px" }}>
+    <div style={{ padding: "20px", background: "#F3F4F6", minHeight: "100vh" }}>
+      
+      {/* Header Card */}
+      <CCard className="shadow-lg mb-4" style={{ borderRadius: "20px", border: "none" }}>
+        <CCardHeader style={{
+          background: "white",
+          borderBottom: "3px solid #FF6600",
+          padding: "20px 30px"
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "15px" }}>
             <div>
-              <h1
-                style={{
-                  margin: "0 0 10px 0",
-                  fontSize: "36px",
-                  fontWeight: "900",
-                  background: "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                }}
-              >
+              <h3 className="mb-0" style={{ fontWeight: "700", color: "#1A1C20" }}>
                 💰 Gestión de Ventas
-              </h1>
-              <p style={{ margin: 0, color: "#666", fontSize: "16px" }}>
+              </h3>
+              <p className="mb-0 mt-1" style={{ color: "#6B7280", fontSize: "14px" }}>
                 Registra y monitorea todas las transacciones
               </p>
             </div>
-            <button
-              onClick={() => setMostrarFormulario(!mostrarFormulario)}
-              style={{
-                background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
-                color: "white",
-                border: "none",
-                borderRadius: "16px",
-                padding: "16px 32px",
-                fontSize: "16px",
-                fontWeight: "800",
-                cursor: "pointer",
-                boxShadow: "0 6px 20px rgba(76, 175, 80, 0.3)",
-                transition: "all 0.3s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = "translateY(-2px)";
-                e.target.style.boxShadow = "0 8px 25px rgba(76, 175, 80, 0.4)";
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = "translateY(0)";
-                e.target.style.boxShadow = "0 6px 20px rgba(76, 175, 80, 0.3)";
-              }}
-            >
-              {mostrarFormulario ? "❌ Cancelar" : "➕ Nueva Venta"}
-            </button>
+            <div style={{ display: "flex", gap: "10px" }}>
+              {cajas.length === 0 && (
+                <CButton
+                  onClick={abrirCajaManual}
+                  style={{
+                    background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+                    border: "none",
+                    borderRadius: "12px",
+                    padding: "12px 24px",
+                    fontWeight: "700",
+                    color: "white",
+                    boxShadow: "0 4px 6px -1px rgba(16, 185, 129, 0.3)",
+                  }}
+                >
+                  🏦 Abrir Caja
+                </CButton>
+              )}
+              <CButton
+                onClick={() => setModalVisible(true)}
+                disabled={cajas.length === 0}
+                style={{
+                  background: cajas.length === 0 
+                    ? "#9CA3AF" 
+                    : "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
+                  border: "none",
+                  borderRadius: "12px",
+                  padding: "12px 24px",
+                  fontWeight: "700",
+                  color: "white",
+                  boxShadow: "0 4px 6px -1px rgba(255, 102, 0, 0.3)",
+                  cursor: cajas.length === 0 ? "not-allowed" : "pointer",
+                }}
+              >
+                ➕ Nueva Venta
+              </CButton>
+            </div>
           </div>
-        </div>
+        </CCardHeader>
 
-        {/* Formulario Nueva Venta */}
-        {mostrarFormulario && (
-          <div
-            style={{
-              background: "white",
-              borderRadius: "20px",
-              padding: "30px",
-              marginBottom: "30px",
-              boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
-            }}
-          >
-            <h2 style={{ margin: "0 0 24px 0", fontSize: "24px", fontWeight: "800", color: "#333" }}>
-              📝 Registrar Nueva Venta
-            </h2>
-            
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "20px" }}>
-              
-              {/* Seleccionar Caja */}
-              <div>
-                <label style={{ display: "block", fontSize: "14px", fontWeight: "700", color: "#666", marginBottom: "8px" }}>
-                  🏦 Caja *
-                </label>
-                <select
+        <CCardBody style={{ padding: "20px 30px" }}>
+          {/* Filtros y Resumen */}
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "15px",
+            marginBottom: "20px"
+          }}>
+            {/* Alerta si no hay caja abierta */}
+            {cajas.length === 0 && (
+              <div style={{
+                width: "100%",
+                padding: "16px 20px",
+                background: "linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)",
+                borderRadius: "12px",
+                border: "2px solid #F59E0B",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                marginBottom: "15px"
+              }}>
+                <span style={{ fontSize: "24px" }}>⚠️</span>
+                <div style={{ flex: 1 }}>
+                  <strong style={{ color: "#92400E", fontWeight: "700" }}>
+                    No hay caja abierta
+                  </strong>
+                  <p style={{ margin: "4px 0 0 0", color: "#78350F", fontSize: "14px" }}>
+                    Debes abrir una caja antes de registrar ventas. Haz clic en "Abrir Caja" arriba.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Alerta si se viene de un pedido */}
+            {pedidoIdFromUrl && pedidoSeleccionado && (
+              <CAlert color="info" style={{ width: "100%", marginBottom: "15px" }}>
+                <strong>📦 Pedido #{pedidoIdFromUrl} seleccionado</strong>
+                <p className="mb-0 mt-1">
+                  Total: ${pedidoSeleccionado.total.toFixed(2)} - Cliente: {pedidoSeleccionado.clienteNombre || "Mostrador"}
+                </p>
+              </CAlert>
+            )}
+
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              {["todas", "hoy", "semana", "mes"].map(filtro => (
+                <CButton
+                  key={filtro}
+                  onClick={() => setFiltroFecha(filtro)}
+                  style={{
+                    background: filtroFecha === filtro
+                      ? "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)"
+                      : "white",
+                    color: filtroFecha === filtro ? "white" : "#6B7280",
+                    border: filtroFecha === filtro ? "none" : "2px solid #E5E7EB",
+                    borderRadius: "10px",
+                    padding: "8px 16px",
+                    fontWeight: "600",
+                    fontSize: "14px",
+                  }}
+                >
+                  {filtro === "todas" && "📋 Todas"}
+                  {filtro === "hoy" && "📅 Hoy"}
+                  {filtro === "semana" && "📆 Semana"}
+                  {filtro === "mes" && "📊 Mes"}
+                </CButton>
+              ))}
+            </div>
+
+            <div style={{
+              background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
+              padding: "12px 24px",
+              borderRadius: "12px",
+              textAlign: "center",
+            }}>
+              <div style={{ color: "white", fontSize: "12px", opacity: 0.9 }}>
+                Total Ventas
+              </div>
+              <div style={{ color: "white", fontSize: "24px", fontWeight: "900", marginTop: "4px" }}>
+                ${totalVentas.toFixed(2)}
+              </div>
+            </div>
+          </div>
+
+          {/* Tabla de Ventas */}
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "40px" }}>
+              <CSpinner color="primary" />
+              <p className="mt-3" style={{ color: "#6B7280" }}>Cargando ventas...</p>
+            </div>
+          ) : ventasFiltradas.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px" }}>
+              <div style={{ fontSize: "48px", marginBottom: "16px" }}>📭</div>
+              <h5 style={{ color: "#6B7280" }}>No hay ventas registradas</h5>
+            </div>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <CTable hover responsive>
+                <CTableHead>
+                  <CTableRow>
+                    <CTableHeaderCell>ID</CTableHeaderCell>
+                    <CTableHeaderCell>Fecha</CTableHeaderCell>
+                    <CTableHeaderCell>Pedido</CTableHeaderCell>
+                    <CTableHeaderCell>Caja</CTableHeaderCell>
+                    <CTableHeaderCell>Empleado</CTableHeaderCell>
+                    <CTableHeaderCell>Método Pago</CTableHeaderCell>
+                    <CTableHeaderCell>Total</CTableHeaderCell>
+                  </CTableRow>
+                </CTableHead>
+                <CTableBody>
+                  {ventasFiltradas.map((v) => {
+                    const metodo = getMetodoPagoBadge(v.metodoPago);
+                    return (
+                      <CTableRow key={v.id}>
+                        <CTableDataCell style={{ fontWeight: "700" }}>#{v.id}</CTableDataCell>
+                        <CTableDataCell>
+                          {new Date(v.fechaVenta).toLocaleString()}
+                        </CTableDataCell>
+                        <CTableDataCell>#{v.pedidoId}</CTableDataCell>
+                        <CTableDataCell>#{v.cajaId}</CTableDataCell>
+                        <CTableDataCell>
+                          {v.empleado ? `${v.empleado.nombre} ${v.empleado.apellidos}` : "N/A"}
+                        </CTableDataCell>
+                        <CTableDataCell>
+                          <CBadge color={metodo.color}>
+                            {metodo.icon} {metodo.text}
+                          </CBadge>
+                        </CTableDataCell>
+                        <CTableDataCell style={{ fontWeight: "700", color: "#10B981" }}>
+                          ${v.total.toFixed(2)}
+                        </CTableDataCell>
+                      </CTableRow>
+                    );
+                  })}
+                </CTableBody>
+              </CTable>
+            </div>
+          )}
+        </CCardBody>
+      </CCard>
+
+      {/* Modal Nueva Venta */}
+      <CModal visible={modalVisible} onClose={handleCerrarModal} size="lg">
+        <CModalHeader>
+          <CModalTitle style={{ fontWeight: "700", color: "#1A1C20" }}>
+            📝 Registrar Nueva Venta
+            {pedidoSeleccionado && (
+              <CBadge color="info" className="ms-2">
+                Pedido #{pedidoSeleccionado.id}
+              </CBadge>
+            )}
+          </CModalTitle>
+        </CModalHeader>
+        <CModalBody>
+          {pedidoSeleccionado && (
+            <CAlert color="success" className="mb-3">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <strong>📦 Detalles del Pedido</strong>
+                  <p className="mb-0 mt-1">
+                    Cliente: {pedidoSeleccionado.clienteNombre || "Mostrador"}
+                  </p>
+                </div>
+                <div style={{ fontSize: "20px", fontWeight: "700" }}>
+                  ${pedidoSeleccionado.total.toFixed(2)}
+                </div>
+              </div>
+            </CAlert>
+          )}
+
+          <CForm>
+            <CRow className="g-3">
+              <CCol md={6}>
+                <CFormLabel style={{ fontWeight: "600" }}>🏦 Caja *</CFormLabel>
+                <CFormSelect
                   value={nuevaVenta.cajaId}
                   onChange={(e) => setNuevaVenta({ ...nuevaVenta, cajaId: e.target.value })}
-                  style={{
-                    width: "100%",
-                    padding: "12px",
-                    border: "2px solid #e0e0e0",
-                    borderRadius: "12px",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                  }}
+                  style={inputStyle}
+                  onFocus={inputFocus}
+                  onBlur={inputBlur}
                 >
                   <option value="">Seleccionar caja...</option>
                   {cajas.map(c => (
@@ -295,368 +618,91 @@ const Ventas = () => {
                       Caja #{c.id} - {c.empleado?.nombre || "Sin empleado"}
                     </option>
                   ))}
-                </select>
-              </div>
+                </CFormSelect>
+              </CCol>
 
-              {/* Seleccionar Pedido */}
-              <div>
-                <label style={{ display: "block", fontSize: "14px", fontWeight: "700", color: "#666", marginBottom: "8px" }}>
-                  📦 Pedido Entregado *
-                </label>
-                <select
+              <CCol md={6}>
+                <CFormLabel style={{ fontWeight: "600" }}>📦 Pedido Entregado *</CFormLabel>
+                <CFormSelect
                   value={nuevaVenta.pedidoId}
                   onChange={(e) => handlePedidoChange(e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "12px",
-                    border: "2px solid #e0e0e0",
-                    borderRadius: "12px",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                  }}
+                  style={inputStyle}
+                  onFocus={inputFocus}
+                  onBlur={inputBlur}
+                  disabled={!!pedidoIdFromUrl}
                 >
                   <option value="">Seleccionar pedido...</option>
                   {pedidos.map(p => (
                     <option key={p.id} value={p.id}>
-                      Pedido #{p.id} - ${p.total}
+                      Pedido #{p.id} - ${p.total.toFixed(2)}
                     </option>
                   ))}
-                </select>
-              </div>
+                </CFormSelect>
+              </CCol>
 
-              {/* ID Empleado */}
-              <div>
-                <label style={{ display: "block", fontSize: "14px", fontWeight: "700", color: "#666", marginBottom: "8px" }}>
-                  👤 ID Empleado *
-                </label>
-                <input
+              <CCol md={6}>
+                <CFormLabel style={{ fontWeight: "600" }}>👤 ID Empleado *</CFormLabel>
+                <CFormInput
                   type="number"
                   value={nuevaVenta.empleadoId}
                   onChange={(e) => setNuevaVenta({ ...nuevaVenta, empleadoId: e.target.value })}
                   placeholder="ID del empleado"
-                  style={{
-                    width: "100%",
-                    padding: "12px",
-                    border: "2px solid #e0e0e0",
-                    borderRadius: "12px",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                  }}
+                  style={inputStyle}
+                  onFocus={inputFocus}
+                  onBlur={inputBlur}
                 />
-              </div>
+              </CCol>
 
-              {/* Método de Pago */}
-              <div>
-                <label style={{ display: "block", fontSize: "14px", fontWeight: "700", color: "#666", marginBottom: "8px" }}>
-                  💳 Método de Pago *
-                </label>
-                <select
+              <CCol md={6}>
+                <CFormLabel style={{ fontWeight: "600" }}>💳 Método de Pago *</CFormLabel>
+                <CFormSelect
                   value={nuevaVenta.metodoPago}
                   onChange={(e) => setNuevaVenta({ ...nuevaVenta, metodoPago: e.target.value })}
-                  style={{
-                    width: "100%",
-                    padding: "12px",
-                    border: "2px solid #e0e0e0",
-                    borderRadius: "12px",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                  }}
+                  style={inputStyle}
+                  onFocus={inputFocus}
+                  onBlur={inputBlur}
                 >
                   <option value="1">💵 Efectivo</option>
                   <option value="2">💳 Tarjeta</option>
                   <option value="3">🏦 Transferencia</option>
-                </select>
-              </div>
+                </CFormSelect>
+              </CCol>
 
-              {/* Total */}
-              <div>
-                <label style={{ display: "block", fontSize: "14px", fontWeight: "700", color: "#666", marginBottom: "8px" }}>
-                  💰 Total *
-                </label>
-                <input
+              <CCol xs={12}>
+                <CFormLabel style={{ fontWeight: "600" }}>💰 Total *</CFormLabel>
+                <CFormInput
                   type="number"
                   step="0.01"
                   value={nuevaVenta.total}
                   onChange={(e) => setNuevaVenta({ ...nuevaVenta, total: e.target.value })}
                   placeholder="0.00"
-                  style={{
-                    width: "100%",
-                    padding: "12px",
-                    border: "2px solid #e0e0e0",
-                    borderRadius: "12px",
-                    fontSize: "14px",
-                    fontWeight: "500",
-                  }}
+                  style={inputStyle}
+                  onFocus={inputFocus}
+                  onBlur={inputBlur}
+                  disabled={!!pedidoSeleccionado}
                 />
-              </div>
-            </div>
+              </CCol>
 
-            <button
-              onClick={registrarVenta}
-              style={{
-                width: "100%",
-                marginTop: "24px",
-                background: "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)",
-                color: "white",
-                border: "none",
-                borderRadius: "16px",
-                padding: "16px",
-                fontSize: "16px",
-                fontWeight: "800",
-                cursor: "pointer",
-                boxShadow: "0 6px 20px rgba(30, 60, 114, 0.3)",
-                transition: "all 0.3s ease",
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = "translateY(-2px)";
-                e.target.style.boxShadow = "0 8px 25px rgba(30, 60, 114, 0.4)";
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = "translateY(0)";
-                e.target.style.boxShadow = "0 6px 20px rgba(30, 60, 114, 0.3)";
-              }}
-            >
-              ✅ Registrar Venta
-            </button>
-          </div>
-        )}
-
-        {/* Filtros y Resumen */}
-        <div
-          style={{
-            background: "white",
-            borderRadius: "20px",
-            padding: "24px",
-            marginBottom: "30px",
-            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "20px",
-          }}
-        >
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button
-              onClick={() => setFiltroFecha("hoy")}
-              style={{
-                padding: "10px 20px",
-                border: filtroFecha === "hoy" ? "2px solid #1e3c72" : "2px solid #e0e0e0",
-                background: filtroFecha === "hoy" ? "#e3f2fd" : "white",
-                color: filtroFecha === "hoy" ? "#1e3c72" : "#666",
-                borderRadius: "12px",
-                fontWeight: "700",
-                fontSize: "14px",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
-            >
-              📅 Hoy
-            </button>
-            <button
-              onClick={() => setFiltroFecha("semana")}
-              style={{
-                padding: "10px 20px",
-                border: filtroFecha === "semana" ? "2px solid #1e3c72" : "2px solid #e0e0e0",
-                background: filtroFecha === "semana" ? "#e3f2fd" : "white",
-                color: filtroFecha === "semana" ? "#1e3c72" : "#666",
-                borderRadius: "12px",
-                fontWeight: "700",
-                fontSize: "14px",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
-            >
-              📆 Última Semana
-            </button>
-            <button
-              onClick={() => setFiltroFecha("mes")}
-              style={{
-                padding: "10px 20px",
-                border: filtroFecha === "mes" ? "2px solid #1e3c72" : "2px solid #e0e0e0",
-                background: filtroFecha === "mes" ? "#e3f2fd" : "white",
-                color: filtroFecha === "mes" ? "#1e3c72" : "#666",
-                borderRadius: "12px",
-                fontWeight: "700",
-                fontSize: "14px",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
-            >
-              📊 Este Mes
-            </button>
-            <button
-              onClick={() => setFiltroFecha("todas")}
-              style={{
-                padding: "10px 20px",
-                border: filtroFecha === "todas" ? "2px solid #1e3c72" : "2px solid #e0e0e0",
-                background: filtroFecha === "todas" ? "#e3f2fd" : "white",
-                color: filtroFecha === "todas" ? "#1e3c72" : "#666",
-                borderRadius: "12px",
-                fontWeight: "700",
-                fontSize: "14px",
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-              }}
-            >
-              📋 Todas
-            </button>
-          </div>
-          
-          <div
-            style={{
-              background: "linear-gradient(135deg, #4caf50 0%, #45a049 100%)",
-              padding: "16px 32px",
-              borderRadius: "16px",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ color: "white", fontSize: "14px", opacity: 0.9 }}>
-              Total de Ventas
-            </div>
-            <div style={{ color: "white", fontSize: "28px", fontWeight: "900", marginTop: "4px" }}>
-              ${totalVentas.toFixed(2)}
-            </div>
-          </div>
-        </div>
-
-        {/* Lista de Ventas */}
-        {loading ? (
-          <div
-            style={{
-              background: "white",
-              borderRadius: "20px",
-              padding: "60px 30px",
-              textAlign: "center",
-              boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
-            }}
-          >
-            <div style={{ fontSize: "48px", marginBottom: "20px" }}>⏳</div>
-            <p style={{ color: "#666", fontSize: "18px", margin: 0 }}>
-              Cargando ventas...
-            </p>
-          </div>
-        ) : ventasFiltradas.length === 0 ? (
-          <div
-            style={{
-              background: "white",
-              borderRadius: "20px",
-              padding: "60px 30px",
-              textAlign: "center",
-              boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
-            }}
-          >
-            <div style={{ fontSize: "64px", marginBottom: "20px" }}>📭</div>
-            <h3 style={{ color: "#666", fontWeight: "600", margin: 0 }}>
-              No hay ventas registradas
-            </h3>
-            <p style={{ color: "#999", marginTop: "10px" }}>
-              Las ventas aparecerán aquí
-            </p>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))", gap: "20px" }}>
-            {ventasFiltradas.map((v) => {
-              const metodoPago = getMetodoPago(v.metodoPago);
-              const fecha = new Date(v.fechaVenta);
-              
-              return (
-                <div
-                  key={v.id}
+              <CCol xs={12} className="text-end mt-3">
+                <CButton
+                  onClick={registrarVenta}
                   style={{
-                    background: "white",
-                    borderRadius: "20px",
-                    padding: "24px",
-                    boxShadow: "0 10px 40px rgba(0, 0, 0, 0.2)",
-                    transition: "all 0.3s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-4px)";
-                    e.currentTarget.style.boxShadow = "0 15px 50px rgba(0, 0, 0, 0.25)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow = "0 10px 40px rgba(0, 0, 0, 0.2)";
+                    background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
+                    border: "none",
+                    borderRadius: "12px",
+                    padding: "12px 32px",
+                    fontWeight: "700",
+                    color: "white",
+                    boxShadow: "0 4px 6px -1px rgba(255, 102, 0, 0.3)",
                   }}
                 >
-                  {/* Header */}
-                  <div style={{ marginBottom: "20px" }}>
-                    <h3 style={{ margin: "0 0 8px 0", fontSize: "24px", fontWeight: "900", color: "#333" }}>
-                      Venta #{v.id}
-                    </h3>
-                    <div style={{ color: "#999", fontSize: "13px" }}>
-                      {fecha.toLocaleDateString()} - {fecha.toLocaleTimeString()}
-                    </div>
-                  </div>
-
-                  {/* Total */}
-                  <div
-                    style={{
-                      background: "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)",
-                      borderRadius: "16px",
-                      padding: "20px",
-                      marginBottom: "20px",
-                      textAlign: "center",
-                    }}
-                  >
-                    <div style={{ color: "white", fontSize: "14px", opacity: 0.9 }}>
-                      Total de la venta
-                    </div>
-                    <div style={{ color: "white", fontSize: "36px", fontWeight: "900", marginTop: "4px" }}>
-                      ${v.total}
-                    </div>
-                  </div>
-
-                  {/* Información */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ fontSize: "18px" }}>{metodoPago.icon}</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: "12px", color: "#999" }}>Método de pago</div>
-                        <div style={{ fontSize: "14px", fontWeight: "700", color: metodoPago.color }}>
-                          {metodoPago.text}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ fontSize: "18px" }}>📦</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: "12px", color: "#999" }}>Pedido</div>
-                        <div style={{ fontSize: "14px", fontWeight: "700", color: "#333" }}>
-                          #{v.pedidoId}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <span style={{ fontSize: "18px" }}>🏦</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: "12px", color: "#999" }}>Caja</div>
-                        <div style={{ fontSize: "14px", fontWeight: "700", color: "#333" }}>
-                          #{v.cajaId}
-                        </div>
-                      </div>
-                    </div>
-
-                    {v.empleado && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <span style={{ fontSize: "18px" }}>👤</span>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: "12px", color: "#999" }}>Empleado</div>
-                          <div style={{ fontSize: "14px", fontWeight: "700", color: "#333" }}>
-                            {v.empleado.nombre} {v.empleado.apellidos}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                  ✅ Registrar Venta
+                </CButton>
+              </CCol>
+            </CRow>
+          </CForm>
+        </CModalBody>
+      </CModal>
     </div>
   );
 };

@@ -8,11 +8,9 @@ import {
   cilBasket,
   cilPlus,
   cilTruck,
-  cilBell,
   cilPeople,
   cilUserPlus,
   cilMobile,
-  cilBook,
   cilMoney,
 } from '@coreui/icons'
 import { CNavGroup, CNavItem, CNavTitle } from '@coreui/react'
@@ -55,12 +53,13 @@ const _nav = [
     roles: ['Administrador', 'Empleado']
   },
   {
-    component: CNavItem,
-    name: 'En proceso',
-    to: '/pages/Enproceso',
-    icon: <CIcon icon={cilClock} customClassName="nav-icon" />,
-    roles: ['Administrador', 'Empleado']
-  },
+  component: CNavItem,
+  name: 'En proceso',
+  to: '/pages/Enproceso',
+  icon: <CIcon icon={cilClock} customClassName="nav-icon" />,
+  roles: ['Administrador', 'Empleado'],
+  badge: true // 👈 Marcador para agregar badge dinámico
+},
   {
     component: CNavItem,
     name: 'Venta',
@@ -98,6 +97,12 @@ const _nav = [
         to: '/pages/AgregarInsumos',
         icon: <CIcon icon={cilPlus} customClassName="nav-icon" />,
       },
+      {
+        component: CNavItem,
+        name: 'Registrar Productos',
+        to: '/pages/RegistrarProductos',
+        icon: <CIcon icon={cilPlus} customClassName="nav-icon" />,
+      },
     ],
   },
   {
@@ -114,13 +119,7 @@ const _nav = [
       },
     ],
   },
-  {
-    component: CNavItem,
-    name: 'Notificaciones',
-    to: 'pages/notificaciones',
-    icon: <CIcon icon={cilBell} customClassName="nav-icon" />,
-    roles: ['Administrador', 'Empleado']
-  },
+  
   {
     component: CNavTitle,
     name: 'Usuarios',
@@ -152,13 +151,7 @@ const _nav = [
       },
     ],
   },
-  {
-    component: CNavItem,
-    name: 'Documentación',
-    href: 'https://coreui.io/react/docs/templates/installation/',
-    icon: <CIcon icon={cilBook} customClassName="nav-icon" />,
-    roles: ['Administrador', 'Empleado']
-  },
+  
   {
     component: CNavTitle,
     name: 'Caja',

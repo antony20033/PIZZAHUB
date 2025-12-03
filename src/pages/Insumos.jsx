@@ -25,97 +25,63 @@ const Insumos = () => {
   const [insumoSeleccionado, setInsumoSeleccionado] = useState(null)
   const [movimientoData, setMovimientoData] = useState({
     cantidad: '',
-    tipoMovimiento: 0, // 0 = salida, 1 = entrada (coincide con tu API ejemplo)
+    tipoMovimiento: 1, // 1 = entrada por defecto
     motivo: '',
   })
 
-  // --- Normaliza unidad (acepta número o texto) ---
-  const parseUnidad = (u) => {
-    if (u === null || u === undefined) return 3 // por defecto unidades
-    // si es número ya
-    if (!Number.isNaN(Number(u))) {
-      const n = Number(u)
-      switch (n) {
-        case 0: return 0 // kg
-        case 1: return 1 // litros
-        case 2: return 2 // gramos
-        case 3: return 3 // unidades
-        default: return 3
-      }
-    }
-    // si viene texto
-    const s = String(u).toLowerCase()
-    if (s.includes('kg')) return 0
-    if (s.includes('kilo')) return 0
-    if (s.includes('lit')) return 1
-    if (s.includes('gram')) return 2
-    if (s.includes('g')) return 2
-    if (s.includes('unidad')) return 3
-    return 3
-  }
+  // 🔧 URL base - cambiar según ambiente
+  //const API_URL = "https://localhost:7188"; // Local
+  const API_URL = "https://pizzahub-api.onrender.com"; // Producción
 
-  const obtenerUnidad = (num) => {
-    switch (num) {
-      case 0: return 'kg'
-      case 1: return 'litros'
-      case 2: return 'gramos'
-      case 3: return 'unidades'
-      default: return ''
-    }
-  }
-
-  // --- Fetch insumos robusto ---
   const fetchInsumos = async () => {
     setLoading(true)
+    console.log('✅ 1. fetchInsumos INICIADO.')
     try {
       const token = localStorage.getItem('token')
+      console.log('✅ 2. Token encontrado:', !!token)
+
       if (!token) {
-        console.warn('No hay token en localStorage')
+        console.error('🔴 AUTH: No hay token en localStorage.')
         setInsumosAPI([])
         setLoading(false)
         return
       }
 
-      const response = await fetch('https://pizzahub-api.onrender.com/api/Insumos', {
+      const response = await fetch(`${API_URL}/api/Insumos`, {
         headers: {
           'Content-Type': 'application/json',
-          Accept: 'application/json',
-          Authorization: `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
       })
 
       if (!response.ok) {
-        console.error('Error al cargar insumos:', response.status)
+        console.error(`🔴 3. ERROR en la API: Status ${response.status}`)
+        const errorBody = await response.text().catch(() => 'No body')
+        console.error('🔴 4. Error:', errorBody)
         setInsumosAPI([])
         setLoading(false)
         return
       }
 
-      // leer seguro
-      const text = await response.text()
-      const data = text ? JSON.parse(text) : []
+      const data = await response.json()
+      console.log('✅ 5. Datos recibidos:', data)
 
-      // Convertir y añadir campos útiles para UI
-      const insumosConvertidos = data.map((i) => {
-        const unidadNorm = parseUnidad(i.unidadMedida)
-        const stockNum = Number(i.stockActual ?? 0)
-        return {
-          raw: i, // mantenemos el objeto original por si lo necesitas
-          id: i.id,
-          nombre: i.nombre ?? 'Sin nombre',
-          unidadMedidaRaw: i.unidadMedida,
-          unidadMedida: unidadNorm, // 0..3
-          stockActual: stockNum,
-          cantidad: `${stockNum} ${obtenerUnidad(unidadNorm)}`,
-          color: 'primary',
-          imagen: '📦',
-          tipoIcono: 'emoji',
-        }
-      })
+      // Mapear los datos del API a formato de UI
+      const insumosConvertidos = data.map((i) => ({
+        id: i.id,
+        nombre: i.nombre ?? 'Sin nombre',
+        unidadMedida: i.unidadMedida ?? 'Uds', // Mantener como texto
+        stockActual: Number(i.stockActual ?? 0),
+        stockMinimo: Number(i.stockMinimo ?? 0),
+        imagen: '📦',
+        tipoIcono: 'emoji',
+      }))
 
       setInsumosAPI(insumosConvertidos)
+      console.log(`✅ 6. Insumos cargados: ${insumosConvertidos.length}`)
     } catch (error) {
-      console.error('Error en fetchInsumos:', error)
+      console.error('🔴 CRITICAL: Error:', error)
       setInsumosAPI([])
     } finally {
       setLoading(false)
@@ -127,32 +93,37 @@ const Insumos = () => {
   }, [])
 
   const handleInsumoClick = (insumo) => {
-  console.log("INSUMO SELECCIONADO:", insumo)
-  setInsumoSeleccionado(insumo)
-  setMovimientoData({
-    cantidad: "",
-    tipoMovimiento: 1,
-    motivo: ""
-  })
-  setVisible(true)
-}
+    console.log("✅ INSUMO CLICKEADO:", insumo)
+    setInsumoSeleccionado(insumo)
+    setMovimientoData({
+      cantidad: '',
+      tipoMovimiento: 1, // Entrada por defecto
+      motivo: ''
+    })
+    setVisible(true)
+    console.log("✅ Modal visible establecido a TRUE")
+  }
 
-
-  // --- actualizar stock (POST a InventarioLog) ---
   const actualizarStock = async () => {
     if (!insumoSeleccionado) {
-      alert('Seleccione un insumo')
+      alert('⚠️ No hay insumo seleccionado')
       return
     }
+
     const cantidadNum = parseFloat(movimientoData.cantidad)
-    if (Number.isNaN(cantidadNum) || cantidadNum <= 0) {
-      alert('Ingresa una cantidad válida mayor a 0.')
+    if (isNaN(cantidadNum) || cantidadNum <= 0) {
+      alert('⚠️ Ingresa una cantidad válida mayor a 0')
+      return
+    }
+
+    if (!movimientoData.motivo.trim()) {
+      alert('⚠️ Por favor ingresa un motivo para el movimiento')
       return
     }
 
     const token = localStorage.getItem('token')
     if (!token) {
-      alert('No autorizado. Falta token.')
+      alert('🔐 No autorizado. Falta token.')
       return
     }
 
@@ -160,35 +131,49 @@ const Insumos = () => {
     const body = {
       insumoId: insumoSeleccionado.id,
       cantidad: cantidadNum,
-      tipoMovimiento: Number(movimientoData.tipoMovimiento), // 0 o 1
-      motivo: movimientoData.motivo || 'Actualización manual',
+      tipoMovimiento: Number(movimientoData.tipoMovimiento), // 0 = Salida, 1 = Entrada
+      motivo: movimientoData.motivo.trim(),
     }
 
+    console.log('📤 Enviando movimiento:', body)
+
     try {
-      const response = await fetch('https://pizzahub-api.onrender.com/api/InventarioLog', {
+      const response = await fetch(`${API_URL}/api/InventarioLog`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(body),
       })
 
       if (!response.ok) {
-        const text = await response.text().catch(() => null)
-        console.error('Error InventarioLog:', response.status, text)
-        alert('Error al actualizar stock (ver consola).')
+        const errorText = await response.text().catch(() => null)
+        console.error('❌ Error InventarioLog:', response.status, errorText)
+        
+        if (response.status === 403) {
+          alert('🚫 Error 403: No tienes permisos para realizar esta acción.\n\nNecesitas rol "Administrador" o "Empleado".')
+        } else if (response.status === 400) {
+          alert(`❌ Error: ${errorText || 'Datos inválidos o stock insuficiente'}`)
+        } else {
+          alert(`❌ Error ${response.status}: No se pudo actualizar el stock`)
+        }
         return
       }
 
-      // éxito
-      alert('Stock actualizado correctamente')
+      const resultado = await response.json()
+      console.log('✅ Stock actualizado:', resultado)
+      
+      alert(`✅ Stock actualizado correctamente!\n\nInsumo: ${insumoSeleccionado.nombre}\nTipo: ${movimientoData.tipoMovimiento === 1 ? 'Entrada' : 'Salida'}\nCantidad: ${cantidadNum}`)
+      
       setVisible(false)
-      // refrescar lista
+      setInsumoSeleccionado(null)
+      
+      // Refrescar lista
       await fetchInsumos()
     } catch (error) {
-      console.error('Error en actualizarStock:', error)
-      alert('Error en la petición. Revisa consola.')
+      console.error('💥 Error en actualizarStock:', error)
+      alert('❌ Error en la petición. Revisa la consola.')
     }
   }
 
@@ -197,10 +182,7 @@ const Insumos = () => {
   )
 
   const renderIcono = (insumo) => {
-    if (insumo.tipoIcono === 'emoji') {
-      return <span style={{ fontSize: '32px' }}>{insumo.imagen}</span>
-    }
-    return null
+    return <span style={{ fontSize: '32px' }}>{insumo.imagen}</span>
   }
 
   return (
@@ -214,7 +196,6 @@ const Insumos = () => {
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         {/* Header */}
         <div
-          className="fade-in"
           style={{
             background: 'white',
             borderRadius: '20px',
@@ -322,7 +303,7 @@ const Insumos = () => {
                     No se encontraron insumos
                   </h3>
                   <p style={{ color: '#999', marginTop: '10px' }}>
-                    Intenta con otro término de búsqueda
+                    {busqueda ? 'Intenta con otro término de búsqueda' : 'Aún no hay insumos registrados'}
                   </p>
                 </div>
               </CCol>
@@ -401,7 +382,7 @@ const Insumos = () => {
                             fontFamily: "'Inter', sans-serif",
                           }}
                         >
-                          {insumo.cantidad}
+                          {insumo.stockActual} {insumo.unidadMedida}
                         </div>
                       </div>
                     </div>
@@ -416,11 +397,12 @@ const Insumos = () => {
       {/* Modal */}
       <CModal
         visible={visible}
-        onClose={() => setVisible(false)}
-        size="lg"
-        style={{
-          borderRadius: '20px',
+        onClose={() => {
+          console.log("❌ Cerrando modal")
+          setVisible(false)
+          setInsumoSeleccionado(null)
         }}
+        size="lg"
       >
         <CModalHeader
           closeButton
@@ -441,170 +423,190 @@ const Insumos = () => {
             📊 Actualizar Inventario
           </h4>
         </CModalHeader>
-<CModalBody style={{ padding: '30px' }}>
-  {insumoSeleccionado ? (
-    <>
-      {console.log("MODAL — INSUMO:", insumoSeleccionado)}
+        
+        <CModalBody style={{ padding: '30px' }}>
+          {insumoSeleccionado ? (
+            <>
+              {/* Información del insumo */}
+              <div
+                style={{
+                  background: '#f8f9fa',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  marginBottom: '24px',
+                }}
+              >
+                <div style={{ marginBottom: '12px' }}>
+                  <span style={{ color: '#666', fontSize: '14px', fontWeight: '600' }}>
+                    Insumo:
+                  </span>
+                  <span
+                    style={{
+                      marginLeft: '8px',
+                      color: '#333',
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      fontFamily: "'Inter', sans-serif",
+                    }}
+                  >
+                    {insumoSeleccionado.nombre}
+                  </span>
+                </div>
 
-      {/* Información del insumo */}
-      <div
-        style={{
-          background: '#f8f9fa',
-          borderRadius: '12px',
-          padding: '20px',
-          marginBottom: '24px',
-        }}
-      >
-        <div style={{ marginBottom: '12px' }}>
-          <span style={{ color: '#666', fontSize: '14px', fontWeight: '600' }}>
-            Insumo:
-          </span>
-          <span
-            style={{
-              marginLeft: '8px',
-              color: '#333',
-              fontSize: '18px',
-              fontWeight: '700',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            {insumoSeleccionado.nombre}
-          </span>
-        </div>
+                <div>
+                  <span style={{ color: '#666', fontSize: '14px', fontWeight: '600' }}>
+                    Stock actual:
+                  </span>
+                  <span
+                    style={{
+                      marginLeft: '8px',
+                      color: '#FF6600',
+                      fontSize: '18px',
+                      fontWeight: '800',
+                      fontFamily: "'Inter', sans-serif",
+                    }}
+                  >
+                    {insumoSeleccionado.stockActual} {insumoSeleccionado.unidadMedida}
+                  </span>
+                </div>
+              </div>
 
-        <div>
-          <span style={{ color: '#666', fontSize: '14px', fontWeight: '600' }}>
-            Stock actual:
-          </span>
-          <span
-            style={{
-              marginLeft: '8px',
-              color: '#FF6600',
-              fontSize: '18px',
-              fontWeight: '800',
-              fontFamily: "'Inter', sans-serif",
-            }}
-          >
-            {insumoSeleccionado.stockActual}{' '}
-            {obtenerUnidad(insumoSeleccionado.unidadMedida)}
-          </span>
-        </div>
-      </div>
+              {/* Tipo movimiento */}
+              <div style={{ marginBottom: '20px' }}>
+                <CFormLabel
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    marginBottom: '8px',
+                    display: 'block',
+                  }}
+                >
+                  Tipo de movimiento
+                </CFormLabel>
+                <CFormSelect
+                  value={String(movimientoData.tipoMovimiento)}
+                  onChange={(e) =>
+                    setMovimientoData({
+                      ...movimientoData,
+                      tipoMovimiento: Number(e.target.value),
+                    })
+                  }
+                  style={{
+                    padding: '12px 16px',
+                    fontSize: '15px',
+                    borderRadius: '10px',
+                    border: '2px solid #e0e0e0',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <option value={1}>📥 Entrada (agregar stock)</option>
+                  <option value={0}>📤 Salida (descontar stock)</option>
+                </CFormSelect>
+              </div>
 
-      {/* Cantidad */}
-      <div style={{ marginBottom: '20px' }}>
-        <CFormLabel
-          style={{
-            fontSize: '13px',
-            fontWeight: '700',
-            marginBottom: '8px',
-            display: 'block',
-          }}
-        >
-          Cantidad
-        </CFormLabel>
-        <CFormInput
-          type="number"
-          value={movimientoData.cantidad}
-          onChange={(e) =>
-            setMovimientoData({
-              ...movimientoData,
-              cantidad: e.target.value,
-            })
-          }
-          placeholder="Ingresa la cantidad..."
-          style={{
-            padding: '12px 16px',
-            fontSize: '15px',
-            borderRadius: '10px',
-            border: '2px solid #e0e0e0',
-            fontWeight: '500',
-          }}
-        />
-      </div>
+              {/* Cantidad */}
+              <div style={{ marginBottom: '20px' }}>
+                <CFormLabel
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    marginBottom: '8px',
+                    display: 'block',
+                  }}
+                >
+                  Cantidad *
+                </CFormLabel>
+                <CFormInput
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={movimientoData.cantidad}
+                  onChange={(e) =>
+                    setMovimientoData({
+                      ...movimientoData,
+                      cantidad: e.target.value,
+                    })
+                  }
+                  placeholder={`Ej: 50 ${insumoSeleccionado.unidadMedida}`}
+                  style={{
+                    padding: '12px 16px',
+                    fontSize: '15px',
+                    borderRadius: '10px',
+                    border: '2px solid #e0e0e0',
+                    fontWeight: '600',
+                  }}
+                />
+              </div>
 
-      {/* Tipo movimiento */}
-      <div style={{ marginBottom: '20px' }}>
-        <CFormLabel
-          style={{
-            fontSize: '13px',
-            fontWeight: '700',
-            marginBottom: '8px',
-            display: 'block',
-          }}
-        >
-          Tipo de movimiento
-        </CFormLabel>
-        <CFormSelect
-          value={String(movimientoData.tipoMovimiento)}
-          onChange={(e) =>
-            setMovimientoData({
-              ...movimientoData,
-              tipoMovimiento: Number(e.target.value),
-            })
-          }
-          style={{
-            padding: '12px 16px',
-            fontSize: '15px',
-            borderRadius: '10px',
-            border: '2px solid #e0e0e0',
-            fontWeight: '600',
-            cursor: 'pointer',
-          }}
-        >
-          <option value={0}>📤 Salida (descontar)</option>
-          <option value={1}>📥 Entrada (agregar)</option>
-        </CFormSelect>
-      </div>
-
-      {/* Motivo */}
-      <div>
-        <CFormLabel
-          style={{
-            fontSize: '13px',
-            fontWeight: '700',
-            marginBottom: '8px',
-            display: 'block',
-          }}
-        >
-          Motivo
-        </CFormLabel>
-        <CFormInput
-          type="text"
-          placeholder="Ej: Corrección, consumo, compra..."
-          value={movimientoData.motivo}
-          onChange={(e) =>
-            setMovimientoData({
-              ...movimientoData,
-              motivo: e.target.value,
-            })
-          }
-          style={{
-            padding: '12px 16px',
-            fontSize: '15px',
-            borderRadius: '10px',
-            border: '2px solid #e0e0e0',
-            fontWeight: '500',
-          }}
-        />
-      </div>
-    </>
-  ) : (
-    <div>Cargando datos…</div>
-  )}
-</CModalBody>
-
+              {/* Motivo */}
+              <div>
+                <CFormLabel
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    marginBottom: '8px',
+                    display: 'block',
+                  }}
+                >
+                  Motivo *
+                </CFormLabel>
+                <CFormInput
+                  type="text"
+                  placeholder="Ej: Compra de proveedor, uso en producción, corrección..."
+                  value={movimientoData.motivo}
+                  onChange={(e) =>
+                    setMovimientoData({
+                      ...movimientoData,
+                      motivo: e.target.value,
+                    })
+                  }
+                  style={{
+                    padding: '12px 16px',
+                    fontSize: '15px',
+                    borderRadius: '10px',
+                    border: '2px solid #e0e0e0',
+                    fontWeight: '500',
+                  }}
+                />
+              </div>
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
+              <p>Cargando datos del insumo...</p>
+            </div>
+          )}
+        </CModalBody>
 
         <CModalFooter style={{ borderTop: '2px solid #f0f0f0', padding: '20px 30px', gap: '12px' }}>
           <CButton
-  color="secondary"
-  onClick={() => setVisible(false)}
-  style={{ padding: '12px 24px', fontWeight: '700', borderRadius: '10px' }}
->
-  Cancelar
-</CButton>
-
-          <CButton onClick={actualizarStock} style={{ padding: '12px 24px', fontWeight: '700', borderRadius: '10px', fontSize: '14px', background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)', border: 'none', color: 'white' }}>
+            color="light"
+            onClick={() => {
+              setVisible(false)
+              setInsumoSeleccionado(null)
+            }}
+            style={{ 
+              padding: '12px 24px', 
+              fontWeight: '600', 
+              borderRadius: '10px',
+              border: '1px solid #ddd'
+            }}
+          >
+            Cancelar
+          </CButton>
+          <CButton 
+            onClick={actualizarStock} 
+            style={{ 
+              padding: '12px 24px', 
+              fontWeight: '700', 
+              borderRadius: '10px', 
+              fontSize: '14px', 
+              background: 'linear-gradient(135deg, #FF6600 0%, #FF8533 100%)', 
+              border: 'none', 
+              color: 'white' 
+            }}
+          >
             ✅ Actualizar Stock
           </CButton>
         </CModalFooter>

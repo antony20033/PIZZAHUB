@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 
 const EntradaPedidos = () => {
-  const clienteId = Number(localStorage.getItem("pedidoClienteId"));
+  const clienteId = Number(localStorage.getItem("pedidoClienteId")) || null;
   const token = localStorage.getItem("token");
 
   const [productos, setProductos] = useState([]);
@@ -75,42 +75,44 @@ const EntradaPedidos = () => {
     }, 0);
 
   // REGISTRAR PEDIDO
-  const registrarPedido = async () => {
-    if (!clienteId) return alert("❌ No se seleccionó un cliente.");
-    if (detalles.length === 0)
-      return alert("❌ Agrega al menos un producto.");
+const registrarPedido = async () => {
+  if (detalles.length === 0)
+    return alert("❌ Agrega al menos un producto.");
 
-    const payload = {
-      clienteId,
-      ...form,
-      detalles
-    };
+  const finalClienteId = clienteId || null;
 
-    try {
-      const res = await fetch(
-        "https://pizzahub-api.onrender.com/api/PedidosNew/registrar",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify(payload)
-        }
-      );
-
-      if (!res.ok) {
-        alert("Error al registrar pedido ❌");
-        return;
-      }
-
-      alert("Pedido registrado con éxito ✔");
-      localStorage.removeItem("pedidoClienteId");
-      window.location.href = "/pedidos";
-    } catch (e) {
-      console.log("Error:", e);
-    }
+  const payload = {
+    clienteId: finalClienteId,
+    ...form,
+    detalles
   };
+
+  try {
+    const res = await fetch(
+      "https://pizzahub-api.onrender.com/api/PedidosNew/registrar",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    if (!res.ok) {
+      alert("Error al registrar pedido ❌");
+      return;
+    }
+
+    alert("Pedido registrado con éxito ✔");
+    localStorage.removeItem("pedidoClienteId");
+    window.location.href = "/pedidos";
+  } catch (e) {
+    console.log("Error:", e);
+  }
+};
+
 
   return (
     <div
@@ -151,31 +153,53 @@ const EntradaPedidos = () => {
           </h1>
 
           <div
-            style={{
-              marginTop: "16px",
-              display: "flex",
-              alignItems: "center",
-              gap: "12px"
-            }}
-          >
-            <span style={{ color: "#6B7280", fontSize: "14px", fontWeight: "500" }}>
-              Cliente ID:
-            </span>
+  style={{
+    marginTop: "16px",
+    display: "flex",
+    alignItems: "center",
+    gap: "12px"
+  }}
+>
+  <span style={{ color: "#6B7280", fontSize: "14px", fontWeight: "500" }}>
+    Cliente ID:
+  </span>
 
-            <span
-              style={{
-                background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
-                color: "white",
-                padding: "6px 18px",
-                borderRadius: "24px",
-                fontWeight: "700",
-                fontSize: "14px",
-                boxShadow: "0 4px 6px -1px rgba(255, 102, 0, 0.3)"
-              }}
-            >
-              #{clienteId || "No seleccionado"}
-            </span>
-          </div>
+  <span
+    style={{
+      background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
+      color: "white",
+      padding: "6px 18px",
+      borderRadius: "24px",
+      fontWeight: "700",
+      fontSize: "14px",
+      boxShadow: "0 4px 6px -1px rgba(255, 102, 0, 0.3)"
+    }}
+  >
+    #{clienteId || "No seleccionado"}
+  </span>
+
+  {/* Nuevo botón para limpiar selección */}
+  {clienteId && (
+    <button
+      style={{
+        padding: "6px 14px",
+        background: "#EF4444",
+        color: "white",
+        border: "none",
+        borderRadius: "8px",
+        cursor: "pointer",
+        fontSize: "12px",
+        fontWeight: "700"
+      }}
+      onClick={() => {
+        localStorage.removeItem("pedidoClienteId");
+        window.location.reload();
+      }}
+    >
+      ❌ Quitar cliente
+    </button>
+  )}
+</div>
         </div>
 
         <div
@@ -185,6 +209,8 @@ const EntradaPedidos = () => {
             gap: "30px"
           }}
         >
+         
+
           {/* IZQUIERDA: PRODUCTOS */}
           <div>
             <div
