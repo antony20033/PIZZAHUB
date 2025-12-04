@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from "../config/api"
 import {
   CCol,
   CRow,
@@ -37,7 +38,7 @@ const Repartidores = () => {
   const fetchUsuarios = async () => {
     try {
       const token = localStorage.getItem('token')
-      const res = await fetch('https://pizzahub-api.onrender.com/api/Clientes', {
+      const res = await fetch(`${API_BASE_URL}/api/Clientes`, {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -62,7 +63,7 @@ const Repartidores = () => {
   const fetchRepartidores = async () => {
     try {
       const token = localStorage.getItem('token')
-      const res = await fetch('https://pizzahub-api.onrender.com/api/Repartidores', {
+      const res = await fetch(`${API_BASE_URL}/api/Repartidores`, {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -90,7 +91,7 @@ const Repartidores = () => {
     try {
       const token = localStorage.getItem('token')
 
-      const res = await fetch('https://pizzahub-api.onrender.com/api/Repartidores', {
+      const res = await fetch(`${API_BASE_URL}/api/Repartidores`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

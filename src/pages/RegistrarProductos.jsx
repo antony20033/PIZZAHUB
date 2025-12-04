@@ -13,6 +13,7 @@ import {
   CButton,
   CFormCheck
 } from "@coreui/react"
+import { API_BASE_URL } from "../config/api"
 
 const RegistrarProductos = () => {
   const initialFormState = {
@@ -52,7 +53,7 @@ const RegistrarProductos = () => {
         imagenUrl: formData.imagenUrl.trim() === "" ? null : formData.imagenUrl
       }
 
-      const res = await fetch("https://pizzahub-api.onrender.com/api/Productos", {
+      const res = await fetch(`${API_BASE_URL}/api/Productos`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

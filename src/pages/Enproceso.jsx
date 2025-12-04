@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"
+import { API_BASE_URL } from "../config/api";
 import { useNavigate } from "react-router-dom";
 
 const Pedidos = () => {
@@ -46,7 +47,7 @@ const Pedidos = () => {
   // -------------------------------
   const fetchPedidos = async () => {
     try {
-      const response = await fetch("https://pizzahub-api.onrender.com/api/PedidosNew", {
+      const response = await fetch(`${API_BASE_URL}/api/PedidosNew`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -83,7 +84,7 @@ const Pedidos = () => {
   // -------------------------------
   const fetchRepartidores = async () => {
     try {
-      const response = await fetch("https://pizzahub-api.onrender.com/api/Repartidores", {
+      const response = await fetch(`${API_BASE_URL}/api/Repartidores`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -110,7 +111,7 @@ const Pedidos = () => {
   const cambiarEstado = async (pedidoId, nuevoEstado) => {
     try {
       const response = await fetch(
-        `https://pizzahub-api.onrender.com/api/PedidosNew/${pedidoId}/estado`,
+        `${API_BASE_URL}/api/PedidosNew/${pedidoId}/estado`,
         {
           method: "PUT",
           headers: {
@@ -154,7 +155,7 @@ const Pedidos = () => {
 
     try {
       const response = await fetch(
-        `https://pizzahub-api.onrender.com/api/PedidosNew/${pedidoId}/asignar-repartidor`,
+        `${API_BASE_URL}/api/PedidosNew/${pedidoId}/asignar-repartidor`,
         {
           method: "PUT",
           headers: {

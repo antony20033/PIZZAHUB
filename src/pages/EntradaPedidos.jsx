@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { API_BASE_URL } from "../config/api";
 
 const EntradaPedidos = () => {
   const clienteId = Number(localStorage.getItem("pedidoClienteId")) || null;
@@ -18,7 +19,7 @@ const EntradaPedidos = () => {
   // CARGAR PRODUCTOS
   const fetchProductos = async () => {
     try {
-      const res = await fetch("https://pizzahub-api.onrender.com/api/Productos", {
+      const res = await fetch(`${API_BASE_URL}/api/Productos`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -89,7 +90,7 @@ const registrarPedido = async () => {
 
   try {
     const res = await fetch(
-      "https://pizzahub-api.onrender.com/api/PedidosNew/registrar",
+      `${API_BASE_URL}/api/PedidosNew/registrar`,
       {
         method: "POST",
         headers: {

@@ -12,6 +12,7 @@ import {
   CFormSelect,
   CButton
 } from "@coreui/react"
+import { API_BASE_URL } from "../config/api"
 
 const CompraInsumos = () => {
   const [insumos, setInsumos] = useState([])
@@ -32,7 +33,7 @@ const CompraInsumos = () => {
     const fetchInsumos = async () => {
       try {
         const token = localStorage.getItem("token")
-        const res = await fetch("https://pizzahub-api.onrender.com/api/Insumos", {
+        const res = await fetch(`${API_BASE_URL}/api/Insumos`, {
           headers: { Authorization: `Bearer ${token}` }
         })
 
@@ -82,7 +83,7 @@ const CompraInsumos = () => {
     try {
       const token = localStorage.getItem("token")
 
-      const res = await fetch("https://pizzahub-api.onrender.com/api/ComprasInsumos", {
+      const res = await fetch(`${API_BASE_URL}/api/ComprasInsumos`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

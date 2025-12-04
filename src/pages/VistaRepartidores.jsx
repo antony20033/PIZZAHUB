@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { API_BASE_URL } from "../config/api";
 
 const VistaRepartidor = () => {
   const [pedidos, setPedidos] = useState([]);
@@ -9,7 +10,7 @@ const VistaRepartidor = () => {
   const [notificacion, setNotificacion] = useState(null);
 
   const token = localStorage.getItem("token");
-  const API_URL = "https://pizzahub-api.onrender.com";
+  const API_URL = API_BASE_URL;
 
   // -------------------------------
   // MOSTRAR NOTIFICACIÓN

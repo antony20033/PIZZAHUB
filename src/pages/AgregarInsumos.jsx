@@ -11,6 +11,7 @@ import {
   CCard,
   CCardBody,
 } from '@coreui/react'
+import { API_BASE_URL } from '../config/api'
 
 const AgregarInsumos = () => {
   const [formData, setFormData] = useState({
@@ -99,7 +100,7 @@ const AgregarInsumos = () => {
         return;
       }
 
-      const response = await fetch("https://pizzahub-api.onrender.com/api/v1/auth/cambiar-rol", {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/cambiar-rol`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -136,6 +137,25 @@ const AgregarInsumos = () => {
       return;
     }
 
+    // Verificar roles en el token
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const roleClaim = payload.role || 
+                       payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ||
+                       payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role"];
+      
+      console.log("🔍 Verificando token antes de enviar:");
+      console.log("  - Roles:", roleClaim);
+      console.log("  - Usuario ID:", payload.nameid || payload.sub);
+      console.log("  - Expira:", new Date(payload.exp * 1000));
+      
+      if (!roleClaim || (roleClaim !== "Administrador" && roleClaim !== "Empleado")) {
+        alert(`⚠️ ADVERTENCIA: Tu token tiene rol "${roleClaim || 'ninguno'}"\n\nPara crear insumos necesitas ser "Administrador" o "Empleado".\n\n¿Quieres intentarlo de todas formas?`);
+      }
+    } catch (err) {
+      console.error("Error al verificar token:", err);
+    }
+
     if (!formData.nombre || !formData.cantidad || !formData.unidad) {
       alert("Completa los campos obligatorios: Nombre, Cantidad y Unidad");
       return;
@@ -144,19 +164,29 @@ const AgregarInsumos = () => {
     // Convertir la unidad a la forma correcta
     const unidadTexto = convertirUnidad(formData.unidad);
 
-    // Crear el objeto con el formato exacto que espera el DTO
+    // Validar y limpiar la cantidad
+    let cantidadLimpia = parseFloat(formData.cantidad);
+    if (isNaN(cantidadLimpia) || cantidadLimpia < 0) {
+      alert("⚠️ La cantidad debe ser un número válido mayor o igual a 0");
+      return;
+    }
+    // Redondear a 2 decimales para coincidir con decimal(10,2) de la BD
+    cantidadLimpia = Math.round(cantidadLimpia * 100) / 100;
+
+    // Crear el objeto con el formato exacto que espera el DTO de C#
+    // IMPORTANTE: Las propiedades deben estar en PascalCase (primera letra mayúscula)
     const data = {
-      nombre: formData.nombre.trim(),
-      unidadMedida: unidadTexto,
-      stockInicial: parseFloat(formData.cantidad) || 0,
-      stockMinimo: 10
+      Nombre: formData.nombre.trim(),
+      UnidadMedida: unidadTexto,
+      StockInicial: cantidadLimpia,
+      StockMinimo: 10
     };
 
     console.log("📤 Enviando datos:", data);
     console.log("🔑 Token (primeros 20 chars):", token.substring(0, 20) + "...");
 
     try {
-      const response = await fetch("https://pizzahub-api.onrender.com/api/Insumos", {
+      const response = await fetch(`${API_BASE_URL}/api/Insumos`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -171,16 +201,27 @@ const AgregarInsumos = () => {
         // Clonar la respuesta para poder leerla múltiples veces
         const responseClone = response.clone();
         let errorMessage = `Error ${response.status}`;
+        let errorDetails = null;
         
         try {
           const errorData = await response.json();
-          errorMessage = errorData.message || errorData.title || JSON.stringify(errorData);
-          console.error("❌ Error del servidor:", errorData);
+          console.error("❌ Error del servidor (JSON):", errorData);
+          
+          // Extraer información detallada del error
+          if (errorData.errors) {
+            // Errores de validación de ModelState
+            errorDetails = Object.entries(errorData.errors)
+              .map(([field, msgs]) => `${field}: ${msgs.join(', ')}`)
+              .join('\n');
+            errorMessage = errorData.title || 'Error de validación';
+          } else {
+            errorMessage = errorData.message || errorData.title || JSON.stringify(errorData);
+          }
         } catch {
           try {
             const errorText = await responseClone.text();
-            errorMessage = errorText || errorMessage;
             console.error("❌ Error (texto):", errorText);
+            errorMessage = errorText || errorMessage;
           } catch (err) {
             console.error("❌ No se pudo leer el error:", err);
           }
@@ -190,8 +231,10 @@ const AgregarInsumos = () => {
           alert(`🚫 Error 403: Acceso denegado\n\nTu token no tiene el rol "Administrador" o "Empleado" necesario.\n\nPor favor verifica con el administrador del sistema.`);
         } else if (response.status === 401) {
           alert(`🔒 Error 401: No autorizado\n\nTu sesión puede haber expirado. Por favor inicia sesión nuevamente.`);
+        } else if (response.status === 400 && errorDetails) {
+          alert(`❌ Error de validación:\n\n${errorDetails}`);
         } else {
-          alert(`❌ Error ${response.status}: ${errorMessage}`);
+          alert(`❌ Error ${response.status}: ${errorMessage}${errorDetails ? '\n\n' + errorDetails : ''}`);
         }
         return;
       }

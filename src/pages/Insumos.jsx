@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from "react"
+import { API_BASE_URL } from "../config/api"
 import CIcon from '@coreui/icons-react'
 import { cilSearch } from '@coreui/icons'
 import {
@@ -29,9 +30,8 @@ const Insumos = () => {
     motivo: '',
   })
 
-  // 🔧 URL base - cambiar según ambiente
-  //const API_URL = "https://localhost:7188"; // Local
-  const API_URL = "https://pizzahub-api.onrender.com"; // Producción
+  // 🔧 URL base - usar configuración centralizada
+  const API_URL = API_BASE_URL;
 
   const fetchInsumos = async () => {
     setLoading(true)

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from "react"
+import { API_BASE_URL } from "../config/api"
 import {
   CCol,
   CRow,
@@ -48,7 +49,7 @@ const Usuarios = () => {
     try {
       const token = localStorage.getItem("token")
 
-      const res = await fetch("https://pizzahub-api.onrender.com/api/Clientes", {
+      const res = await fetch(`${API_BASE_URL}/api/Clientes`, {
         headers: {
           "Authorization": `Bearer ${token}`
         }
@@ -83,7 +84,7 @@ const Usuarios = () => {
     e.preventDefault()
 
     try {
-      const response = await fetch('https://pizzahub-api.onrender.com/api/v1/auth/register', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

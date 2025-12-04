@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { API_BASE_URL } from '../config/api';
 
 const useNewPedidos = (enabled = true, intervalo = 30000) => { // enabled controla si está activo
   const [pedidosPendientes, setPedidosPendientes] = useState(0);
@@ -21,7 +22,7 @@ const useNewPedidos = (enabled = true, intervalo = 30000) => { // enabled contro
       const token = localStorage.getItem('token');
       
       const response = await fetch(
-        'https://pizzahub-api.onrender.com/api/PedidosNew/estado/Pendiente',
+        `${API_BASE_URL}/api/PedidosNew/estado/Pendiente`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
