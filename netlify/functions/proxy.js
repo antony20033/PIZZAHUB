@@ -7,7 +7,7 @@
 const API_BASE = process.env.RENDER_API_BASE_URL || 'https://pizzahub-api.onrender.com'
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || ''
 
-exports.handler = async function (event, context) {
+export const handler = async function (event, context) {
   try {
     const origin = event.headers?.origin || event.headers?.Origin || ''
     if (ALLOWED_ORIGIN && origin && origin !== ALLOWED_ORIGIN) {

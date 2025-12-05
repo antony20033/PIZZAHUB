@@ -87,7 +87,7 @@ const Ventas = () => {
       // Filtrar pedidos entregados (estado 3)
       const pedidosEntregados = data.filter(p => {
         const estado = typeof p.estado === 'string' ? parseInt(p.estado) : p.estado;
-        return estado === 3;
+        return estado === 4;
       });
       console.log("Pedidos entregados:", pedidosEntregados);
       setPedidos(pedidosEntregados);
