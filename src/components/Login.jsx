@@ -14,6 +14,7 @@ import {
 import CIcon from "@coreui/icons-react";
 import { cilLockLocked, cilUser } from "@coreui/icons";
 import AuthContext from "../context/AuthContext";
+import callApi from "../utils/apiProxy";
 import { API_BASE_URL } from "../config/api";
 import logo from "../media/img/logo.jpg";
 
@@ -33,7 +34,7 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+      const response = await callApi('/api/v1/auth/login', {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
