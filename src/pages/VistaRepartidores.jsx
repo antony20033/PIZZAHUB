@@ -105,17 +105,14 @@ const VistaRepartidor = () => {
     try {
       console.log(`📦 Marcando pedido ${pedidoId} como entregado (estado: 3)`);
       
-      const response = await fetch(
-        `${API_URL}/api/PedidosNew/${pedidoId}/estado`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(3) // 3 = Entregado
-        }
-      );
+      const response = await callApi(`/api/PedidosNew/${pedidoId}/estado`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(3) // 3 = Entregado
+      });
 
       if (!response.ok) {
         const errorText = await response.text();

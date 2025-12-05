@@ -87,7 +87,7 @@ const Ventas = () => {
       // Filtrar pedidos entregados (estado 3)
       const pedidosEntregados = data.filter(p => {
         const estado = typeof p.estado === 'string' ? parseInt(p.estado) : p.estado;
-        return estado === 4;
+        return estado === 3;
       });
       console.log("Pedidos entregados:", pedidosEntregados);
       setPedidos(pedidosEntregados);
@@ -194,12 +194,12 @@ useEffect(() => {
         console.log("IDs disponibles:", pedidosData.map(p => p.id));
         alert(`⚠️ El pedido #${pedidoIdFromUrl} no existe o no está en estado Entregado`);
         // Limpiar el parámetro de la URL
-        navigate("/ventas", { replace: true });
+        navigate("/pages/Ventas", { replace: true });
       }
     } else if (pedidoIdFromUrl && pedidosData.length === 0) {
       console.warn("⚠️ Se recibió pedidoId pero no hay pedidos entregados");
       alert("⚠️ No hay pedidos entregados disponibles");
-      navigate("/ventas", { replace: true });
+      navigate("/pages/Ventas", { replace: true });
     }
   };
 
@@ -284,10 +284,10 @@ useEffect(() => {
         total: 0
       });
       
-      // Limpiar URL si venía con pedidoId
-      if (pedidoIdFromUrl) {
-        navigate("/ventas", { replace: true });
-      }
+        // Limpiar URL si venía con pedidoId
+        if (pedidoIdFromUrl) {
+          navigate("/pages/Ventas", { replace: true });
+        }
       
       fetchVentas();
       fetchPedidos();

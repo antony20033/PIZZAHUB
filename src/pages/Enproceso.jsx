@@ -110,17 +110,14 @@ const Pedidos = () => {
   // -------------------------------
   const cambiarEstado = async (pedidoId, nuevoEstado) => {
     try {
-      const response = await fetch(
-        `/api/PedidosNew/${pedidoId}/estado`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(nuevoEstado)
-        }
-      );
+      const response = await callApi(`/api/PedidosNew/${pedidoId}/estado`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(nuevoEstado)
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
