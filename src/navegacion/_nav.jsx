@@ -12,7 +12,7 @@ import {
   cilUserPlus,
   cilMobile,
   cilMoney,
-  cilHome,
+  
   cilSpeedometer,
 } from '@coreui/icons'
 import { CNavGroup, CNavItem, CNavTitle } from '@coreui/react'

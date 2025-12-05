@@ -5,7 +5,6 @@ import AppContent from "../components/AppContent";
 
 const DefaultLayout = () => {
     const unfoldable = useSelector((state) => state.sidebarUnfoldable);
-    const sidebarShow = useSelector((state) => state.sidebarShow);
     const [isDesktop, setIsDesktop] = useState(true);
     
     // Detectar si es desktop o móvil
