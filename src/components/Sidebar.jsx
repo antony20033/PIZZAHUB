@@ -9,6 +9,8 @@ import {
   CButton,
   CFormSwitch
 } from '@coreui/react'
+import CIcon from '@coreui/icons-react'
+import { cilArrowCircleLeft } from '@coreui/icons'
 
 import { AppSidebarNav } from './SidebarNav'
 import { getFilteredNav } from '../navegacion/_nav'
@@ -86,9 +88,10 @@ const AppSidebar = () => {
         className="border-bottom"
         style={{
           backgroundColor: 'rgba(0, 0, 0, 0.2)',
-          padding: '24px 20px',
+          padding: unfoldable ? '24px 12px' : '24px 20px',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
           position: 'relative',
+          transition: 'padding 0.3s ease',
         }}
       >
         <CCloseButton
@@ -103,15 +106,16 @@ const AppSidebar = () => {
           onClick={() => dispatch({ type: 'set', sidebarShow: false })}
         />
         
-        <div style={{ textAlign: 'center', width: '100%' }}>
+        <div style={{ textAlign: 'center', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{
-            width: '80px',
-            height: '80px',
+            width: unfoldable ? '45px' : '80px',
+            height: unfoldable ? '45px' : '80px',
             margin: '0 auto 12px',
             borderRadius: '16px',
             overflow: 'hidden',
             boxShadow: '0 8px 16px rgba(255, 102, 0, 0.3)',
             border: '3px solid rgba(255, 102, 0, 0.3)',
+            transition: 'width 0.3s ease, height 0.3s ease',
           }}>
             <img 
               src={logo} 
@@ -123,28 +127,34 @@ const AppSidebar = () => {
               }}
             />
           </div>
-          <h2
-            style={{
-              color: '#ffffff',
-              fontWeight: '800',
-              letterSpacing: '2px',
-              fontSize: '1.5rem',
-              fontFamily: "'Inter', sans-serif",
-              margin: 0,
-              textTransform: 'uppercase',
-            }}
-          >
-            PizzaHub
-          </h2>
-          <p style={{
-            color: 'rgba(255, 255, 255, 0.6)',
-            fontSize: '0.75rem',
-            margin: '4px 0 0 0',
-            fontWeight: '500',
-            letterSpacing: '1px',
-          }}>
-            {roles && roles.includes("Repartidor") ? "REPARTIDOR" : "ADMIN PANEL"}
-          </p>
+          {!unfoldable && (
+            <>
+              <h2
+                style={{
+                  color: '#ffffff',
+                  fontWeight: '800',
+                  letterSpacing: '2px',
+                  fontSize: '1.5rem',
+                  fontFamily: "'Inter', sans-serif",
+                  margin: 0,
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                PizzaHub
+              </h2>
+              <p style={{
+                color: 'rgba(255, 255, 255, 0.6)',
+                fontSize: '0.75rem',
+                margin: '4px 0 0 0',
+                fontWeight: '500',
+                letterSpacing: '1px',
+                whiteSpace: 'nowrap',
+              }}>
+                {roles && roles.includes("Repartidor") ? "REPARTIDOR" : "ADMIN PANEL"}
+              </p>
+            </>
+          )}
         </div>
       </CSidebarHeader>
 
@@ -157,7 +167,8 @@ const AppSidebar = () => {
         style={{
           borderTop: '1px solid rgba(255, 255, 255, 0.1)',
           backgroundColor: 'rgba(0, 0, 0, 0.2)',
-          padding: '20px',
+          padding: unfoldable ? '16px 8px' : '20px',
+          transition: 'padding 0.3s ease',
         }}
       >
         {/* Toggle de Notificaciones */}
@@ -165,36 +176,44 @@ const AppSidebar = () => {
           <div
             style={{
               width: '100%',
-              padding: '12px 16px',
+              padding: unfoldable ? '8px' : '12px 16px',
               marginBottom: '12px',
               background: 'rgba(255, 255, 255, 0.05)',
               borderRadius: '10px',
               border: '1px solid rgba(255, 255, 255, 0.1)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
+              justifyContent: unfoldable ? 'center' : 'space-between',
+              transition: 'all 0.3s ease',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {unfoldable ? (
               <span style={{ fontSize: '18px' }}>🔔</span>
-              <span
-                style={{
-                  color: '#ffffff',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                }}
-              >
-                Alertas
-              </span>
-            </div>
-            <CFormSwitch
-              id="notificacionesSwitch"
-              checked={notificacionesActivas}
-              onChange={handleToggleNotificaciones}
-              style={{
-                cursor: 'pointer',
-              }}
-            />
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '18px' }}>🔔</span>
+                  <span
+                    style={{
+                      color: '#ffffff',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Alertas
+                  </span>
+                </div>
+                <CFormSwitch
+                  id="notificacionesSwitch"
+                  checked={notificacionesActivas}
+                  onChange={handleToggleNotificaciones}
+                  style={{
+                    cursor: 'pointer',
+                  }}
+                />
+              </>
+            )}
           </div>
         )}
 
@@ -208,10 +227,15 @@ const AppSidebar = () => {
             borderColor: 'rgba(220, 53, 69, 0.5)',
             border: '2px solid rgba(220, 53, 69, 0.5)',
             borderRadius: '10px',
-            padding: '12px',
-            fontSize: '14px',
+            padding: unfoldable ? '12px 8px' : '12px',
+            fontSize: unfoldable ? '18px' : '14px',
             color: '#ff6b6b',
             transition: 'all 0.2s ease',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '44px',
           }}
           onMouseEnter={(e) => {
             e.target.style.backgroundColor = '#dc3545'
@@ -229,7 +253,11 @@ const AppSidebar = () => {
           }}
           onClick={handleLogout}
         >
-           Cerrar sesión
+          {unfoldable ? (
+            <CIcon icon={cilArrowCircleLeft} size="lg" />
+          ) : (
+            'Cerrar sesión'
+          )}
         </CButton>
 
         {/* Sidebar Toggler */}

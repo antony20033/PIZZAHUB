@@ -15,8 +15,8 @@ export const AppSidebarNav = ({ items }) => {
     .sidebar-dark-theme .nav-link {
       color: rgba(255, 255, 255, 0.7) !important;
       font-weight: 500 !important;
-      padding: 12px 16px !important;
-      margin: 4px 12px !important;
+      padding: 12px 8px !important;
+      margin: 4px 4px !important;
       border-radius: 10px !important;
       transition: all 0.2s ease !important;
       position: relative;
@@ -27,7 +27,7 @@ export const AppSidebarNav = ({ items }) => {
       font-weight: 600 !important;
       background: linear-gradient(135deg, rgba(255, 102, 0, 0.15) 0%, rgba(255, 133, 51, 0.1) 100%) !important;
       border-left: 3px solid #FF6600 !important;
-      padding-left: 13px !important;
+      padding-left: 5px !important;
       box-shadow: 0 2px 8px rgba(255, 102, 0, 0.2);
     }
     
@@ -44,7 +44,8 @@ export const AppSidebarNav = ({ items }) => {
     .sidebar-dark-theme .nav-icon {
       color: rgba(255, 255, 255, 0.6) !important;
       transition: color 0.2s ease;
-      margin-right: 8px !important;
+      margin-right: 10px !important;
+      flex-shrink: 0;
     }
     
     .sidebar-dark-theme .nav-link:hover .nav-icon {
@@ -55,8 +56,8 @@ export const AppSidebarNav = ({ items }) => {
     .sidebar-dark-theme .nav-group-toggle {
       color: rgba(255, 255, 255, 0.7) !important;
       font-weight: 500 !important;
-      padding: 12px 16px !important;
-      margin: 4px 12px !important;
+      padding: 12px 8px !important;
+      margin: 4px 4px !important;
       border-radius: 10px !important;
       transition: all 0.2s ease !important;
       cursor: pointer;
@@ -69,6 +70,7 @@ export const AppSidebarNav = ({ items }) => {
 
     .sidebar-dark-theme .nav-group-toggle .nav-icon {
       color: rgba(255, 255, 255, 0.6) !important;
+      flex-shrink: 0;
     }
 
     .sidebar-dark-theme .nav-group-toggle:hover .nav-icon {
@@ -78,14 +80,14 @@ export const AppSidebarNav = ({ items }) => {
     /* Subitems dentro de grupos */
     .sidebar-dark-theme .nav-group-items {
       background-color: rgba(0, 0, 0, 0.15);
-      margin: 4px 12px 8px 12px;
+      margin: 4px 4px 8px 4px;
       border-radius: 10px;
       padding: 4px 0;
     }
 
     .sidebar-dark-theme .nav-group-items .nav-link {
-      padding: 10px 16px 10px 40px !important;
-      margin: 2px 8px !important;
+      padding: 10px 8px 10px 32px !important;
+      margin: 2px 2px !important;
       font-size: 13px !important;
     }
 
