@@ -131,9 +131,15 @@ const Pedidos = () => {
         )
       );
 
-      // Recargar todos los pedidos
+      // Si el pedido pasó a 'Entregado' (3), refrescamos y abrimos Ventas con ese pedido
+      if (parseInt(nuevoEstado) === 3) {
+        await fetchPedidos();
+        navigate(`/pages/Ventas?pedidoId=${pedidoId}`);
+        return;
+      }
+
+      // Recargar todos los pedidos en otros casos
       await fetchPedidos();
-      
       alert("Estado actualizado correctamente");
     } catch (error) {
       console.error("Error cambiando estado:", error);

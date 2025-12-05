@@ -68,9 +68,11 @@ export const handler = async function (event, context) {
     }
   } catch (err) {
     console.error('Proxy error', err)
+    // Return stack in body for easier debugging (trim to avoid huge responses)
+    const stack = err && err.stack ? String(err.stack).slice(0, 2000) : String(err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ message: 'Proxy error', error: String(err) }),
+      body: JSON.stringify({ message: 'Proxy error', error: String(err), stack }),
     }
   }
 }

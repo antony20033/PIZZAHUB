@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import callApi from "../utils/apiProxy";
+import { useNavigate } from "react-router-dom";
 
 const EntradaPedidos = () => {
   const clienteId = Number(localStorage.getItem("pedidoClienteId")) || null;
@@ -31,6 +32,8 @@ const EntradaPedidos = () => {
       console.log("Error productos:", e);
     }
   };
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProductos();
@@ -105,7 +108,8 @@ const registrarPedido = async () => {
 
     alert("Pedido registrado con éxito ✔");
     localStorage.removeItem("pedidoClienteId");
-    window.location.href = "/pedidos";
+    // Navegar a Enproceso para ver el nuevo pedido en la lista
+    navigate('/pages/Enproceso');
   } catch (e) {
     console.log("Error:", e);
   }

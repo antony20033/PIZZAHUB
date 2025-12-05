@@ -11,6 +11,32 @@ const VistaRepartidor = () => {
 
   const token = localStorage.getItem("token");
 
+  // Intentar detectar repartidor automáticamente desde el usuario logueado
+  const autoDetectRepartidor = async () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return;
+      const user = JSON.parse(userStr);
+      const userId = user?.id;
+      if (!userId) return;
+
+      // Obtener lista de repartidores y buscar el que corresponda al usuario
+      const res = await callApi('/api/Repartidores', { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) return;
+      const lista = await res.json();
+      const found = lista.find(r => r.usuarioId === userId || (r.usuario && (r.usuario.id === userId || r.usuario.usuarioId === userId)));
+      if (found) {
+        setRepartidor(found);
+        setRepartidorId(String(found.id));
+        setMostrarInput(false);
+        // Cargar pedidos asignados al repartidor
+        await fetchPedidos(found.id);
+      }
+    } catch (err) {
+      console.error('Auto-detect repartidor error:', err);
+    }
+  };
+
   // -------------------------------
   // MOSTRAR NOTIFICACIÓN
   // -------------------------------
@@ -64,14 +90,15 @@ const VistaRepartidor = () => {
       console.log("📋 Todos los pedidos:", data);
       console.log("🔍 Filtrando por repartidorId:", id);
       
-      // Filtrar pedidos asignados Y que NO estén entregados (estado !== 3) ni cancelados (estado !== 4)
+      // Normalizar y filtrar pedidos asignados Y que NO estén entregados (estado !== 3) ni cancelados (estado !== 4)
       const pedidosAsignados = data.filter(p => {
-        const esDelRepartidor = p.repartidorId === parseInt(id);
-        const noEntregado = p.estado !== 3;
-        const noCancelado = p.estado !== 4;
-        
-        console.log(`Pedido ${p.id}: repartidor=${p.repartidorId}, estado=${p.estado}, mostrar=${esDelRepartidor && noEntregado && noCancelado}`);
-        
+        const esDelRepartidor = parseInt(p.repartidorId) === parseInt(id);
+        const estadoNum = normalizarEstado(p.estado);
+        const noEntregado = estadoNum !== 3;
+        const noCancelado = estadoNum !== 4;
+
+        console.log(`Pedido ${p.id}: repartidor=${p.repartidorId}, estado=${p.estado} (norm:${estadoNum}), mostrar=${esDelRepartidor && noEntregado && noCancelado}`);
+
         return esDelRepartidor && noEntregado && noCancelado;
       });
       
@@ -97,6 +124,11 @@ const VistaRepartidor = () => {
       mostrarNotificacion("Por favor ingresa tu ID de repartidor", "warning");
     }
   };
+
+  // Intentar auto-detección al montar
+  React.useEffect(() => {
+    autoDetectRepartidor();
+  }, []);
 
   // -------------------------------
   // MARCAR COMO ENTREGADO
@@ -134,27 +166,37 @@ const VistaRepartidor = () => {
   };
 
   // -------------------------------
-  // OBTENER INFORMACIÓN DEL ESTADO
   // -------------------------------
+  // NORMALIZAR Y OBTENER INFORMACIÓN DEL ESTADO
+  // -------------------------------
+  const normalizarEstado = (estado) => {
+    if (typeof estado === 'number') return estado;
+    if (typeof estado === 'string') {
+      const s = estado.toLowerCase().trim();
+      const map = { 'preparando': 0, 'preparación': 0, 'pendiente': 1, '1': 1, 'encamino': 2, 'en camino': 2, '2': 2, 'entregado': 3, '3': 3, 'cancelado': 4, '4': 4 };
+      if (map.hasOwnProperty(s)) return map[s];
+      const n = parseInt(estado);
+      if (!isNaN(n)) return n;
+    }
+    return 1; // por defecto pendiente
+  };
+
   const getEstadoInfo = (estado) => {
-    // Normalizar estado
-    let estadoNum = typeof estado === 'string' ? parseInt(estado) : estado;
-    
-    console.log("Estado recibido:", estado, "→ Normalizado:", estadoNum);
-    
+    const estadoNum = normalizarEstado(estado);
+
     switch (estadoNum) {
       case 0:
-        return { color: "#ff9800", bg: "#fff3e0", text: "Preparando", icon: "👨‍🍳" };
+        return { color: "#475569", bg: "#f1f5f9", text: "Preparando", icon: "" };
       case 1:
-        return { color: "#ffc107", bg: "#fff8e1", text: "Pendiente", icon: "⏳" };
+        return { color: "#2563eb", bg: "#e7f0ff", text: "Pendiente", icon: "" };
       case 2:
-        return { color: "#2196f3", bg: "#e3f2fd", text: "En camino", icon: "🚚" };
+        return { color: "#0ea5a4", bg: "#ecfdf5", text: "En camino", icon: "" };
       case 3:
-        return { color: "#4caf50", bg: "#e8f5e9", text: "Entregado", icon: "✅" };
+        return { color: "#10b981", bg: "#ecfdf5", text: "Entregado", icon: "" };
       case 4:
-        return { color: "#f44336", bg: "#ffebee", text: "Cancelado", icon: "❌" };
+        return { color: "#ef4444", bg: "#fff5f5", text: "Cancelado", icon: "" };
       default:
-        return { color: "#9e9e9e", bg: "#f5f5f5", text: "Desconocido", icon: "❓" };
+        return { color: "#6b7280", bg: "#f8fafc", text: "Desconocido", icon: "" };
     }
   };
 
@@ -163,7 +205,7 @@ const VistaRepartidor = () => {
       className="page-container"
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #FF6600 0%, #FF8533 50%, #FFA366 100%)",
+        background: "#f4f6f8",
         width: "100%",
         maxWidth: "100%",
         margin: 0
@@ -195,10 +237,7 @@ const VistaRepartidor = () => {
             maxWidth: "400px",
           }}
         >
-          <span style={{ fontSize: "24px" }}>
-            {notificacion.tipo === "success" ? "✅" : notificacion.tipo === "error" ? "❌" : "⚠️"}
-          </span>
-          <span>{notificacion.mensaje}</span>
+          <span style={{ marginLeft: 0 }}>{notificacion.mensaje}</span>
         </div>
       )}
 
@@ -211,31 +250,32 @@ const VistaRepartidor = () => {
             borderRadius: "20px",
             padding: "30px",
             marginBottom: "30px",
-            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15)",
+            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.06)",
             textAlign: "center",
-            borderBottom: "4px solid #FF6600",
+            borderBottom: "4px solid #2b6cb0",
           }}
         >
           <div
             style={{
               width: "80px",
               height: "80px",
-              background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
+              background: "#e6eef9",
               borderRadius: "50%",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               margin: "0 auto 20px",
-              fontSize: "40px",
-              boxShadow: "0 4px 20px rgba(255, 102, 0, 0.3)",
+              fontSize: "28px",
+              color: "#2b6cb0",
+              boxShadow: "0 4px 12px rgba(43, 108, 176, 0.06)",
             }}
           >
-            🚴
+            {repartidor ? repartidor.nombreCompleto?.charAt(0) || "R" : "R"}
           </div>
           <h1
             style={{
               margin: "0 0 10px 0",
-              fontSize: "28px",
+              fontSize: "24px",
               fontWeight: "800",
               color: "#1A1C20",
               fontFamily: "'Inter', sans-serif",
@@ -243,103 +283,51 @@ const VistaRepartidor = () => {
           >
             {repartidor ? `¡Hola, ${repartidor.nombreCompleto}!` : "Vista de Repartidor"}
           </h1>
-          <p style={{ color: "#666", fontSize: "16px", margin: 0 }}>
+          <p style={{ color: "#666", fontSize: "15px", margin: 0 }}>
             {!mostrarInput && (
               <>
-                Tienes <span style={{ fontWeight: "800", color: "#FF6600" }}>{pedidos.length}</span>{" "}
+                Tienes <span style={{ fontWeight: "800", color: "#2b6cb0" }}>{pedidos.length}</span>{" "}
                 {pedidos.length === 1 ? "pedido pendiente" : "pedidos pendientes"}
               </>
             )}
           </p>
         </div>
 
-        {/* Input y Botón de Cargar */}
-        <div
-          style={{
-            background: "white",
-            borderRadius: "20px",
-            padding: "24px",
-            marginBottom: "20px",
-            boxShadow: "0 10px 40px rgba(0, 0, 0, 0.15)",
-          }}
-        >
-          <label
+        {/* Auto-detección: si no se detecta repartidor se muestra un aviso y botón */}
+        {!repartidor && (
+          <div
             style={{
-              display: "block",
-              fontSize: "14px",
-              fontWeight: "700",
-              color: "#FF6600",
-              marginBottom: "12px",
+              background: "white",
+              borderRadius: "12px",
+              padding: "18px",
+              marginBottom: "20px",
+              boxShadow: "0 6px 24px rgba(0, 0, 0, 0.04)",
               textAlign: "center",
-              textTransform: "uppercase",
-              letterSpacing: "1px",
             }}
           >
-            🆔 Ingresa tu ID de Repartidor
-          </label>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <input
-              type="number"
-              value={repartidorId}
-              onChange={(e) => setRepartidorId(e.target.value)}
-              placeholder="Ej: 1, 2, 3..."
-              style={{
-                flex: 1,
-                padding: "14px 16px",
-                border: "2px solid #E5E7EB",
-                borderRadius: "12px",
-                fontSize: "16px",
-                fontWeight: "600",
-                outline: "none",
-                transition: "all 0.3s ease",
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = "#FF6600";
-                e.target.style.boxShadow = "0 0 0 3px rgba(255, 102, 0, 0.1)";
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = "#E5E7EB";
-                e.target.style.boxShadow = "none";
-              }}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  cargarPedidosConId();
-                }
-              }}
-            />
-            <button
-              onClick={cargarPedidosConId}
-              disabled={loading}
-              style={{
-                background: loading 
-                  ? "#ccc" 
-                  : "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
-                color: "white",
-                border: "none",
-                borderRadius: "12px",
-                padding: "14px 30px",
-                fontSize: "16px",
-                fontWeight: "700",
-                cursor: loading ? "not-allowed" : "pointer",
-                boxShadow: "0 4px 15px rgba(255, 102, 0, 0.3)",
-                transition: "all 0.3s ease",
-                whiteSpace: "nowrap",
-              }}
-              onMouseEnter={(e) => {
-                if (!loading) {
-                  e.target.style.transform = "translateY(-2px)";
-                  e.target.style.boxShadow = "0 6px 20px rgba(255, 102, 0, 0.4)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = "translateY(0)";
-                e.target.style.boxShadow = "0 4px 15px rgba(255, 102, 0, 0.3)";
-              }}
-            >
-              {loading ? "🔄 Cargando..." : "🔄 Cargar Pedidos"}
-            </button>
+            <p style={{ margin: 0, color: "#555", fontWeight: 600 }}>
+              No se detectó automáticamente el repartidor. Por favor pulsa el botón para intentar de nuevo.
+            </p>
+            <div style={{ marginTop: 12 }}>
+              <button
+                onClick={autoDetectRepartidor}
+                disabled={loading}
+                style={{
+                  background: loading ? "#cbd5e1" : "#2b6cb0",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "10px",
+                  padding: "10px 18px",
+                  fontSize: "14px",
+                  fontWeight: "700",
+                  cursor: loading ? "not-allowed" : "pointer",
+                }}
+              >
+                {loading ? "Cargando..." : "Detectar repartidor"}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Lista de Pedidos */}
         {!mostrarInput && (
@@ -405,25 +393,23 @@ const VistaRepartidor = () => {
                       }}
                     >
                       {/* Badge de Estado */}
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: "20px",
-                          right: "20px",
-                          background: estadoInfo.bg,
-                          color: estadoInfo.color,
-                          padding: "8px 16px",
-                          borderRadius: "20px",
-                          fontSize: "13px",
-                          fontWeight: "700",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                        }}
-                      >
-                        <span>{estadoInfo.icon}</span>
-                        {estadoInfo.text}
-                      </div>
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "20px",
+                            right: "20px",
+                            background: estadoInfo.bg,
+                            color: estadoInfo.color,
+                            padding: "8px 14px",
+                            borderRadius: "16px",
+                            fontSize: "13px",
+                            fontWeight: "700",
+                            display: "flex",
+                            alignItems: "center",
+                          }}
+                        >
+                          {estadoInfo.text}
+                        </div>
 
                       {/* Número de Pedido */}
                       <div style={{ marginBottom: "20px", paddingRight: "120px" }}>
@@ -441,14 +427,12 @@ const VistaRepartidor = () => {
                           Pedido #{p.id}
                         </h2>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
-                          <span style={{ fontSize: "18px" }}>👤</span>
                           <span style={{ color: "#666", fontSize: "16px", fontWeight: "600" }}>
                             {p.clienteNombre || "Cliente mostrador"}
                           </span>
                         </div>
                         {p.direccionEntrega && (
                           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <span style={{ fontSize: "18px" }}>📍</span>
                             <span style={{ color: "#999", fontSize: "14px" }}>
                               {p.direccionEntrega}
                             </span>
@@ -457,30 +441,30 @@ const VistaRepartidor = () => {
                       </div>
 
                       {/* Total */}
-                      <div
-                        style={{
-                          background: "linear-gradient(135deg, #FF6600 0%, #FF8533 100%)",
-                          borderRadius: "16px",
-                          padding: "20px",
-                          marginBottom: "20px",
-                          textAlign: "center",
-                        }}
-                      >
-                        <div style={{ color: "white", fontSize: "14px", opacity: 0.9, fontWeight: "600" }}>
-                          Valor del pedido
-                        </div>
                         <div
                           style={{
-                            color: "white",
-                            fontSize: "36px",
-                            fontWeight: "900",
-                            marginTop: "4px",
-                            fontFamily: "'Inter', sans-serif",
+                            background: "#eef6ff",
+                            borderRadius: "12px",
+                            padding: "16px",
+                            marginBottom: "20px",
+                            textAlign: "center",
                           }}
                         >
-                          ${p.total}
+                          <div style={{ color: "#2b6cb0", fontSize: "13px", opacity: 0.95, fontWeight: "600" }}>
+                            Valor del pedido
+                          </div>
+                          <div
+                            style={{
+                              color: "#1a365d",
+                              fontSize: "28px",
+                              fontWeight: "800",
+                              marginTop: "4px",
+                              fontFamily: "'Inter', sans-serif",
+                            }}
+                          >
+                            ${p.total}
+                          </div>
                         </div>
-                      </div>
 
                       {/* Productos */}
                       {p.detalles && p.detalles.length > 0 && (
@@ -504,7 +488,7 @@ const VistaRepartidor = () => {
                               letterSpacing: "1px",
                             }}
                           >
-                            📦 Productos del pedido
+                            Productos del pedido
                           </h4>
                           {p.detalles.map((d, index) => (
                             <div

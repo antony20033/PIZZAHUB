@@ -26,6 +26,7 @@ import {
   CAlert
 } from "@coreui/react";
 import callApi from "../utils/apiProxy";
+import { getMiEmpleado } from "../api/empleados";
 
 const Ventas = () => {
   const [searchParams] = useSearchParams();
@@ -49,6 +50,27 @@ const Ventas = () => {
   });
 
   const token = localStorage.getItem("token");
+
+  // Normalizar el campo 'estado' que puede venir como número o como texto
+  const normalizarEstado = (estado) => {
+    if (typeof estado === 'number') return estado;
+    if (typeof estado === 'string') {
+      const estadoStr = estado.toLowerCase().trim();
+      const mapaEstados = {
+        'pendiente': 1,
+        '1': 1,
+        'encamino': 2,
+        'en camino': 2,
+        '2': 2,
+        'entregado': 3,
+        '3': 3,
+        'cancelado': 4,
+        '4': 4,
+      };
+      return mapaEstados[estadoStr] || parseInt(estado) || 1;
+    }
+    return 1;
+  };
 
   // -------------------------------
   // CARGAR VENTAS
@@ -84,9 +106,9 @@ const Ventas = () => {
       if (!response.ok) throw new Error("Error al obtener pedidos");
 
       const data = await response.json();
-      // Filtrar pedidos entregados (estado 3)
+      // Filtrar pedidos entregados (estado 3) usando normalización
       const pedidosEntregados = data.filter(p => {
-        const estado = typeof p.estado === 'string' ? parseInt(p.estado) : p.estado;
+        const estado = normalizarEstado(p.estado);
         return estado === 3;
       });
       console.log("Pedidos entregados:", pedidosEntregados);
@@ -164,17 +186,32 @@ useEffect(() => {
         console.log("✅ Pedido encontrado:", pedido);
         setPedidoSeleccionado(pedido);
         
-        // Obtener empleadoId de la caja si existe
-        const empleadoIdCaja = cajasData.length > 0 && cajasData[0].empleado 
-          ? cajasData[0].empleado.id.toString() 
-          : "";
+        // Intentar determinar el empleado asociado al usuario logueado
+        let empleadoIdCaja = "";
+        try {
+          const userStr = localStorage.getItem('user');
+          const user = userStr ? JSON.parse(userStr) : null;
+          if (user && user.id) {
+            const miEmpleado = await getMiEmpleado(token, user.id);
+            if (miEmpleado && miEmpleado.id) {
+              empleadoIdCaja = String(miEmpleado.id);
+            }
+          }
+        } catch (err) {
+          console.warn('No se pudo obtener empleado asociado al usuario:', err);
+        }
 
-        console.log("👤 Empleado ID de caja:", empleadoIdCaja);
-        
+        // Si no obtuvimos empleado por usuario, intentar usar la caja
+        if (!empleadoIdCaja && cajasData.length > 0 && cajasData[0].empleado) {
+          empleadoIdCaja = String(cajasData[0].empleado.id);
+        }
+
+        console.log("👤 Empleado ID determinado:", empleadoIdCaja);
+
         // Precargar datos en el formulario
         const datosVenta = {
-          cajaId: cajasData.length > 0 ? cajasData[0].id.toString() : "",
-          pedidoId: pedido.id.toString(),
+          cajaId: cajasData.length > 0 ? String(cajasData[0].id) : "",
+          pedidoId: String(pedido.id),
           empleadoId: empleadoIdCaja,
           metodoPago: 1,
           total: pedido.total
@@ -283,14 +320,14 @@ useEffect(() => {
         metodoPago: 1,
         total: 0
       });
-      
-        // Limpiar URL si venía con pedidoId
-        if (pedidoIdFromUrl) {
-          navigate("/pages/Ventas", { replace: true });
-        }
-      
-      fetchVentas();
-      fetchPedidos();
+      // Recargar datos para que la lista se actualice correctamente
+      await fetchVentas();
+      await fetchPedidos();
+
+      // Limpiar URL si venía con pedidoId
+      if (pedidoIdFromUrl) {
+        navigate("/pages/Ventas", { replace: true });
+      }
     } catch (error) {
       console.error("Error registrando venta:", error);
       alert("❌ Error: " + error.message);
