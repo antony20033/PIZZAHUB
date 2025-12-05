@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { API_BASE_URL } from "../config/api";
+import callApi from "../utils/apiProxy";
 import { useNavigate } from "react-router-dom";
 
 const Pedidos = () => {
@@ -47,7 +47,7 @@ const Pedidos = () => {
   // -------------------------------
   const fetchPedidos = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/PedidosNew`, {
+      const response = await callApi('/api/PedidosNew', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -84,7 +84,7 @@ const Pedidos = () => {
   // -------------------------------
   const fetchRepartidores = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/Repartidores`, {
+      const response = await callApi('/api/Repartidores', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -111,7 +111,7 @@ const Pedidos = () => {
   const cambiarEstado = async (pedidoId, nuevoEstado) => {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/PedidosNew/${pedidoId}/estado`,
+        `/api/PedidosNew/${pedidoId}/estado`,
         {
           method: "PUT",
           headers: {
@@ -154,17 +154,14 @@ const Pedidos = () => {
     }
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/PedidosNew/${pedidoId}/asignar-repartidor`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ repartidorId: repartidorId })
-        }
-      );
+      const response = await callApi(`/api/PedidosNew/${pedidoId}/asignar-repartidor`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ repartidorId: repartidorId })
+      });
 
       if (!response.ok) {
         const errorText = await response.text();

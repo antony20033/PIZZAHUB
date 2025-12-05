@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { API_BASE_URL } from "../config/api"
+import callApi from "../utils/apiProxy"
 import {
   CCol,
   CRow,
@@ -49,11 +49,7 @@ const Usuarios = () => {
     try {
       const token = localStorage.getItem("token")
 
-      const res = await fetch(`${API_BASE_URL}/api/Clientes`, {
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      })
+      const res = await callApi('/api/Clientes', { headers: { "Authorization": `Bearer ${token}` } })
 
       if (!res.ok) {
         console.error("Error cargando usuarios:", res.status)
@@ -84,7 +80,7 @@ const Usuarios = () => {
     e.preventDefault()
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
+      const response = await callApi('/api/v1/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)

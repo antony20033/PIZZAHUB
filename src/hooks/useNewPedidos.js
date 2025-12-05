@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { API_BASE_URL } from '../config/api';
+import callApi from '../utils/apiProxy';
 
 const useNewPedidos = (enabled = true, intervalo = 30000) => { // enabled controla si está activo
   const [pedidosPendientes, setPedidosPendientes] = useState(0);
@@ -21,14 +21,11 @@ const useNewPedidos = (enabled = true, intervalo = 30000) => { // enabled contro
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(
-        `${API_BASE_URL}/api/PedidosNew/estado/Pendiente`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await callApi('/api/PedidosNew/estado/Pendiente', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error('Error al obtener pedidos');

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { API_BASE_URL } from "../config/api"
+import callApi from "../utils/apiProxy"
 import {
   CRow,
   CCol,
@@ -48,7 +48,7 @@ const Provedores = () => {
   // ======== CARGAR USUARIOS (solo rol 2) ==========
   const fetchUsuarios = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/Usuarios`)
+      const res = await callApi('/api/Usuarios')
       const data = await res.json()
 
       const filtrados = data.filter((u) => u.rol === 2 || u.rol === 3) // empleados o repartidores
@@ -61,7 +61,7 @@ const Provedores = () => {
   // ======== CARGAR REPARTIDORES ==========
   const fetchRepartidores = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/Repartidores`)
+      const res = await callApi('/api/Repartidores')
       const data = await res.json()
       setRepartidores(data)
     } catch (err) {
@@ -86,7 +86,7 @@ const Provedores = () => {
     if (!form.nombre || !form.apellidos || !form.telefono || !form.usuarioId) return
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/Repartidores`, {
+      const res = await callApi('/api/Repartidores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -104,7 +104,7 @@ const Provedores = () => {
   // ========= ELIMINAR ==========
   const handleEliminar = async (id) => {
     try {
-      await fetch(`${API_BASE_URL}/api/Repartidores/${id}`, {
+      await callApi(`/api/Repartidores/${id}`, {
         method: 'DELETE',
       })
 
@@ -122,7 +122,7 @@ const Provedores = () => {
 
   const handleGuardarEdicion = async () => {
     try {
-      await fetch(`${API_BASE_URL}/api/Repartidores/${repartidorEditando.id}`, {
+      await callApi(`/api/Repartidores/${repartidorEditando.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(repartidorEditando),

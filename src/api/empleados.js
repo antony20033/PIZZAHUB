@@ -1,11 +1,11 @@
-import { API_BASE_URL } from "../config/api";
+import callApi from "../utils/apiProxy";
 
 /**
  * Obtener información del empleado actual
  * Busca el empleado asociado al usuario logueado
  */
 export const getMiEmpleado = async (token, userId) => {
-  const response = await fetch(`${API_BASE_URL}/api/Empleados`, {
+  const response = await callApi('/api/Empleados', {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -31,7 +31,7 @@ export const getMiEmpleado = async (token, userId) => {
  * Obtener todos los empleados
  */
 export const getEmpleados = async (token) => {
-  const response = await fetch(`${API_BASE_URL}/api/Empleados`, {
+  const response = await callApi('/api/Empleados', {
     headers: {
       Authorization: `Bearer ${token}`,
     },

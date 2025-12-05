@@ -1,10 +1,10 @@
-import { API_BASE_URL } from "../config/api";
+import callApi from "../utils/apiProxy";
 
 /**
  * Obtener la caja abierta actual
  */
 export const getCajaAbierta = async (token) => {
-  const response = await fetch(`${API_BASE_URL}/api/Caja/abierta`, {
+  const response = await callApi('/api/Caja/abierta', {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -25,7 +25,7 @@ export const getCajaAbierta = async (token) => {
  * Abrir una nueva caja
  */
 export const abrirCaja = async (token, saldoInicial, empleadoId) => {
-  const response = await fetch(`${API_BASE_URL}/api/Caja/abrir`, {
+  const response = await callApi('/api/Caja/abrir', {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -49,7 +49,7 @@ export const abrirCaja = async (token, saldoInicial, empleadoId) => {
  * Cerrar caja y obtener resumen
  */
 export const cerrarCaja = async (token, cajaId, saldoFinal) => {
-  const response = await fetch(`${API_BASE_URL}/api/Caja/${cajaId}/cerrar`, {
+  const response = await callApi(`/api/Caja/${cajaId}/cerrar`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -72,7 +72,7 @@ export const cerrarCaja = async (token, cajaId, saldoFinal) => {
  * Obtener resumen de una caja específica
  */
 export const getResumenCaja = async (token, cajaId) => {
-  const response = await fetch(`${API_BASE_URL}/api/Caja/${cajaId}/resumen`, {
+  const response = await callApi(`/api/Caja/${cajaId}/resumen`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -89,7 +89,7 @@ export const getResumenCaja = async (token, cajaId) => {
  * Obtener historial de cajas
  */
 export const getHistorialCajas = async (token) => {
-  const response = await fetch(`${API_BASE_URL}/api/Caja`, {
+  const response = await callApi('/api/Caja', {
     headers: {
       Authorization: `Bearer ${token}`,
     },

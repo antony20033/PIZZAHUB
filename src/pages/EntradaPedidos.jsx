@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { API_BASE_URL } from "../config/api";
+import callApi from "../utils/apiProxy";
 
 const EntradaPedidos = () => {
   const clienteId = Number(localStorage.getItem("pedidoClienteId")) || null;
@@ -19,7 +19,7 @@ const EntradaPedidos = () => {
   // CARGAR PRODUCTOS
   const fetchProductos = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/Productos`, {
+      const res = await callApi('/api/Productos', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -89,17 +89,14 @@ const registrarPedido = async () => {
   };
 
   try {
-    const res = await fetch(
-      `${API_BASE_URL}/api/PedidosNew/registrar`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      }
-    );
+    const res = await callApi('/api/PedidosNew/registrar', {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
 
     if (!res.ok) {
       alert("Error al registrar pedido ❌");

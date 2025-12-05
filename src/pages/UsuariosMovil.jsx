@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { API_BASE_URL } from "../config/api"
+import callApi from "../utils/apiProxy"
 import {
   CCard,
   CCardHeader,
@@ -49,9 +49,7 @@ const UsuariosMovil = () => {
 
   const fetchClientes = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/Clientes`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await callApi('/api/Clientes', { headers: { Authorization: `Bearer ${token}` } })
       if (!res.ok) return
       const data = await res.json()
       setClientes(data.filter(esCliente))
@@ -104,14 +102,14 @@ const UsuariosMovil = () => {
 
   const handleSubmit = async () => {
     try {
-      let url = `${API_BASE_URL}/api/Clientes`
+      let url = `/api/Clientes`
       let method = 'POST'
       if (formData.id && formData.id > 0) {
         url += `/${formData.id}`
         method = 'PUT'
       }
 
-      const res = await fetch(url, {
+      const res = await callApi(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -137,7 +135,7 @@ const UsuariosMovil = () => {
   const handleDelete = async () => {
     if (!window.confirm('¿Desea eliminar este cliente?')) return
     try {
-      const res = await fetch(`${API_BASE_URL}/api/Clientes/${formData.id}`, {
+      const res = await callApi(`/api/Clientes/${formData.id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       })

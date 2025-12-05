@@ -25,7 +25,7 @@ import {
   CSpinner,
   CAlert
 } from "@coreui/react";
-import { API_BASE_URL } from "../config/api";
+import callApi from "../utils/apiProxy";
 
 const Ventas = () => {
   const [searchParams] = useSearchParams();
@@ -56,7 +56,7 @@ const Ventas = () => {
   const fetchVentas = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/Ventas`, {
+      const response = await callApi('/api/Ventas', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -77,7 +77,7 @@ const Ventas = () => {
   // -------------------------------
   const fetchPedidos = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/PedidosNew`, {
+      const response = await callApi('/api/PedidosNew', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -103,7 +103,7 @@ const Ventas = () => {
   // -------------------------------
   const fetchCajas = async () => {
     try {
-      const responseAbierta = await fetch(`${API_BASE_URL}/api/Caja/abierta`, {
+      const responseAbierta = await callApi('/api/Caja/abierta', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -115,7 +115,7 @@ const Ventas = () => {
       }
 
       console.log("No hay caja abierta, intentando listar todas...");
-      const responseAll = await fetch(`${API_BASE_URL}/api/Caja`, {
+      const responseAll = await callApi('/api/Caja', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -213,7 +213,7 @@ useEffect(() => {
     if (!empleadoId) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/Caja/abrir`, {
+      const response = await callApi('/api/Caja/abrir', {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -258,7 +258,7 @@ useEffect(() => {
 
       console.log("Enviando venta:", dataToSend);
 
-      const response = await fetch(`${API_BASE_URL}/api/Ventas`, {
+      const response = await callApi('/api/Ventas', {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

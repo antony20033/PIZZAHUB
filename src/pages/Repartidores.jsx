@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { API_BASE_URL } from "../config/api"
+import callApi from "../utils/apiProxy"
 import {
   CCol,
   CRow,
@@ -38,9 +38,7 @@ const Repartidores = () => {
   const fetchUsuarios = async () => {
     try {
       const token = localStorage.getItem('token')
-      const res = await fetch(`${API_BASE_URL}/api/Clientes`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await callApi('/api/Clientes', { headers: { Authorization: `Bearer ${token}` } })
 
       if (!res.ok) return
 
@@ -63,9 +61,7 @@ const Repartidores = () => {
   const fetchRepartidores = async () => {
     try {
       const token = localStorage.getItem('token')
-      const res = await fetch(`${API_BASE_URL}/api/Repartidores`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await callApi('/api/Repartidores', { headers: { Authorization: `Bearer ${token}` } })
 
       if (!res.ok) return
 
@@ -91,7 +87,7 @@ const Repartidores = () => {
     try {
       const token = localStorage.getItem('token')
 
-      const res = await fetch(`${API_BASE_URL}/api/Repartidores`, {
+      const res = await callApi('/api/Repartidores', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

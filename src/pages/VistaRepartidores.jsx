@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { API_BASE_URL } from "../config/api";
+import callApi from "../utils/apiProxy";
 
 const VistaRepartidor = () => {
   const [pedidos, setPedidos] = useState([]);
@@ -10,7 +10,6 @@ const VistaRepartidor = () => {
   const [notificacion, setNotificacion] = useState(null);
 
   const token = localStorage.getItem("token");
-  const API_URL = API_BASE_URL;
 
   // -------------------------------
   // MOSTRAR NOTIFICACIÓN
@@ -25,7 +24,7 @@ const VistaRepartidor = () => {
   // -------------------------------
   const fetchRepartidorActual = async (id) => {
     try {
-      const response = await fetch(`${API_URL}/api/Repartidores/${id}`, {
+      const response = await callApi(`/api/Repartidores/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -52,7 +51,7 @@ const VistaRepartidor = () => {
     
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/PedidosNew`, {
+      const response = await callApi('/api/PedidosNew', {
         headers: {
           Authorization: `Bearer ${token}`
         }

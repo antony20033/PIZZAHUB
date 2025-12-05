@@ -28,7 +28,7 @@ import {
   cilArrowBottom,
 } from "@coreui/icons";
 import AuthContext from "../context/AuthContext";
-import { API_BASE_URL } from "../config/api";
+import callApi from "../utils/apiProxy";
 
 const Movimientos = () => {
   const { token } = useContext(AuthContext);
@@ -59,7 +59,7 @@ const Movimientos = () => {
   // Función para obtener ventas
   const fetchVentas = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/Ventas`, {
+      const response = await callApi('/api/Ventas', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Error al obtener ventas");
@@ -75,7 +75,7 @@ const Movimientos = () => {
   // Función para obtener insumos
   const fetchInsumos = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/Insumos`, {
+      const response = await callApi('/api/Insumos', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Error al obtener insumos");
@@ -90,7 +90,7 @@ const Movimientos = () => {
   // Función para obtener insumos bajo stock
   const fetchInsumosBajoStock = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/Insumos/bajo-stock`, {
+      const response = await callApi('/api/Insumos/bajo-stock', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Error al obtener insumos");
@@ -104,7 +104,7 @@ const Movimientos = () => {
   // Función para obtener entradas
   const fetchEntradas = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/InventarioLog/entradas`, {
+      const response = await callApi('/api/InventarioLog/entradas', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Error al obtener entradas");
@@ -118,7 +118,7 @@ const Movimientos = () => {
   // Función para obtener salidas
   const fetchSalidas = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/InventarioLog/salidas`, {
+      const response = await callApi('/api/InventarioLog/salidas', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error("Error al obtener salidas");
@@ -295,12 +295,8 @@ const Movimientos = () => {
         
         // Esperar a que se carguen entradas y salidas
         Promise.all([
-          fetch(`${API_BASE_URL}/api/InventarioLog/entradas`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }).then(r => r.json()),
-          fetch(`${API_BASE_URL}/api/InventarioLog/salidas`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }).then(r => r.json())
+          callApi('/api/InventarioLog/entradas', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+          callApi('/api/InventarioLog/salidas', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json())
         ]).then(([entradasData, salidasData]) => {
           calcularMovimientosHoy(entradasData, salidasData);
           calcularMovimientosMes(entradasData, salidasData);

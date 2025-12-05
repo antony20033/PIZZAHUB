@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { API_BASE_URL } from "../config/api"
+import callApi from "../utils/apiProxy"
 import CIcon from '@coreui/icons-react'
 import { cilSearch } from '@coreui/icons'
 import {
@@ -31,7 +31,7 @@ const Insumos = () => {
   })
 
   // 🔧 URL base - usar configuración centralizada
-  const API_URL = API_BASE_URL;
+  const API_URL = '';
 
   const fetchInsumos = async () => {
     setLoading(true)
@@ -47,7 +47,7 @@ const Insumos = () => {
         return
       }
 
-      const response = await fetch(`${API_URL}/api/Insumos`, {
+      const response = await callApi('/api/Insumos', {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -138,7 +138,7 @@ const Insumos = () => {
     console.log('📤 Enviando movimiento:', body)
 
     try {
-      const response = await fetch(`${API_URL}/api/InventarioLog`, {
+      const response = await callApi('/api/InventarioLog', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

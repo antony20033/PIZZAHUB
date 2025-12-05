@@ -12,7 +12,7 @@ import {
   CFormSelect,
   CButton
 } from "@coreui/react"
-import { API_BASE_URL } from "../config/api"
+import callApi from "../utils/apiProxy"
 
 const CompraInsumos = () => {
   const [insumos, setInsumos] = useState([])
@@ -33,7 +33,7 @@ const CompraInsumos = () => {
     const fetchInsumos = async () => {
       try {
         const token = localStorage.getItem("token")
-        const res = await fetch(`${API_BASE_URL}/api/Insumos`, {
+        const res = await callApi('/api/Insumos', {
           headers: { Authorization: `Bearer ${token}` }
         })
 
@@ -83,7 +83,7 @@ const CompraInsumos = () => {
     try {
       const token = localStorage.getItem("token")
 
-      const res = await fetch(`${API_BASE_URL}/api/ComprasInsumos`, {
+      const res = await callApi('/api/ComprasInsumos', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

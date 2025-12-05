@@ -11,7 +11,7 @@ import {
   CCard,
   CCardBody,
 } from '@coreui/react'
-import { API_BASE_URL } from '../config/api'
+import callApi from '../utils/apiProxy'
 
 const AgregarInsumos = () => {
   const [formData, setFormData] = useState({
@@ -100,7 +100,7 @@ const AgregarInsumos = () => {
         return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/v1/auth/cambiar-rol`, {
+      const response = await callApi('/api/v1/auth/cambiar-rol', {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -186,7 +186,7 @@ const AgregarInsumos = () => {
     console.log("🔑 Token (primeros 20 chars):", token.substring(0, 20) + "...");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/Insumos`, {
+      const response = await callApi('/api/Insumos', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

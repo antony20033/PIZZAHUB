@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { API_BASE_URL } from "../config/api"
+import callApi from "../utils/apiProxy"
 import {
   CCol,
   CRow,
@@ -39,9 +39,7 @@ const RegistroEmpleado = () => {
   const fetchUsuarios = async () => {
     try {
       const token = localStorage.getItem('token')
-      const res = await fetch(`${API_BASE_URL}/api/Clientes`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await callApi('/api/Clientes', { headers: { Authorization: `Bearer ${token}` } })
 
       if (!res.ok) return
 
@@ -64,9 +62,7 @@ const RegistroEmpleado = () => {
   const fetchEmpleados = async () => {
     try {
       const token = localStorage.getItem('token')
-      const res = await fetch(`${API_BASE_URL}/api/Empleados`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await callApi('/api/Empleados', { headers: { Authorization: `Bearer ${token}` } })
 
       if (!res.ok) return
 
@@ -98,7 +94,7 @@ const RegistroEmpleado = () => {
     try {
       const token = localStorage.getItem('token')
 
-      const response = await fetch(`${API_BASE_URL}/api/Empleados`, {
+      const response = await callApi('/api/Empleados', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

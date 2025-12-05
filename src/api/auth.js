@@ -1,9 +1,7 @@
-import { API_BASE_URL } from "../config/api";
-
-const API_URL = `${API_BASE_URL}/api/v1/auth`;
+import callApi from "../utils/apiProxy";
 
 export const loginRequest = async (email, password) => {
-  const response = await fetch(`${API_URL}/login`, {
+  const response = await callApi(`/api/v1/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -13,7 +13,7 @@ import {
   CButton,
   CFormCheck
 } from "@coreui/react"
-import { API_BASE_URL } from "../config/api"
+import callApi from "../utils/apiProxy"
 
 const RegistrarProductos = () => {
   const initialFormState = {
@@ -53,7 +53,7 @@ const RegistrarProductos = () => {
         imagenUrl: formData.imagenUrl.trim() === "" ? null : formData.imagenUrl
       }
 
-      const res = await fetch(`${API_BASE_URL}/api/Productos`, {
+      const res = await callApi('/api/Productos', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

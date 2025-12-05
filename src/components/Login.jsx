@@ -15,7 +15,6 @@ import CIcon from "@coreui/icons-react";
 import { cilLockLocked, cilUser } from "@coreui/icons";
 import AuthContext from "../context/AuthContext";
 import callApi from "../utils/apiProxy";
-import { API_BASE_URL } from "../config/api";
 import logo from "../media/img/logo.jpg";
 
 const Login = () => {
