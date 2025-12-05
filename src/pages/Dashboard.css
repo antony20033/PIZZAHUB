@@ -1,0 +1,236 @@
+.dashboard-container {
+  padding: 20px;
+}
+
+/* Banner de Bienvenida */
+.welcome-banner {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.welcome-content {
+  padding: 20px 0;
+}
+
+.welcome-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  animation: fadeInDown 0.8s ease-in-out;
+}
+
+.welcome-subtitle {
+  font-size: 1.2rem;
+  opacity: 0.9;
+  margin-bottom: 20px;
+  animation: fadeInUp 0.8s ease-in-out;
+}
+
+.time-display {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  animation: fadeIn 1s ease-in-out;
+}
+
+.current-date {
+  font-size: 1rem;
+  opacity: 0.85;
+  text-transform: capitalize;
+}
+
+.current-time {
+  font-size: 2rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+}
+
+/* Animación de Pizza */
+.pizza-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+.pizza-icon {
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.2));
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(10deg);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Tarjetas de Acciones Rápidas */
+.quick-action-card {
+  text-align: center;
+  padding: 30px 15px;
+  border-radius: 10px;
+  background: #f8f9fa;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  height: 100%;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  background: #ffffff;
+}
+
+.quick-action-card h5 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 15px 0 10px;
+  color: #333;
+}
+
+.quick-action-card p {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Pedidos Recientes */
+.recent-orders {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.order-item:hover {
+  background: #e9ecef;
+  transform: translateX(5px);
+}
+
+.order-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.order-number {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.order-customer {
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+/* Productos Más Vendidos */
+.top-products {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.product-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.product-item:hover {
+  background: #e9ecef;
+  transform: translateX(5px);
+}
+
+.product-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.product-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.product-count {
+  font-size: 0.9rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .welcome-title {
+    font-size: 1.8rem;
+  }
+
+  .welcome-subtitle {
+    font-size: 1rem;
+  }
+
+  .current-time {
+    font-size: 1.5rem;
+  }
+
+  .quick-action-card {
+    margin-bottom: 15px;
+  }
+}
+
+/* Animaciones suaves para las tarjetas */
+.card {
+  animation: fadeInUp 0.5s ease-in-out;
+}
+
+/* Efectos de hover para widgets */
+.card:hover {
+  transform: translateY(-2px);
+  transition: transform 0.3s ease;
+}

@@ -1,5 +1,4 @@
 import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   CButton,
   CCard,
@@ -19,7 +18,6 @@ import { API_BASE_URL } from "../config/api";
 import logo from "../media/img/logo.jpg";
 
 const Login = () => {
-  const navigate = useNavigate();
   const { login } = useContext(AuthContext);
 
   const [form, setForm] = useState({
@@ -51,7 +49,7 @@ const Login = () => {
 
       const data = await response.json();
       login(data.accessToken, data.usuario, data.roles);
-      navigate("/dashboard");
+      // El cambio de token en el contexto hará que App.jsx renderice DefaultLayout
 
     } catch (error) {
       console.error(error);

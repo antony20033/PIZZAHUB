@@ -12,10 +12,19 @@ import {
   cilUserPlus,
   cilMobile,
   cilMoney,
+  cilHome,
+  cilSpeedometer,
 } from '@coreui/icons'
 import { CNavGroup, CNavItem, CNavTitle } from '@coreui/react'
 
 const _nav = [
+  {
+    component: CNavItem,
+    name: 'Dashboard',
+    to: '/',
+    icon: <CIcon icon={cilSpeedometer} customClassName="nav-icon" />,
+    roles: ['Administrador', 'Empleado'] // No para repartidores
+  },
   {
     component: CNavTitle,
     name: 'Repartidor',

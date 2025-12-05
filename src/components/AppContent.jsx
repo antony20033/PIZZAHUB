@@ -24,7 +24,6 @@ const AppContent = () => {
               )
             )
           })}
-          <Route path="/" element={<Navigate to="/pages/VistaRepartidores" replace />} />
         </Routes>
       </Suspense>
     </CContainer>
