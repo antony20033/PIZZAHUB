@@ -9,7 +9,7 @@ const AppContent = () => {
   const filteredRoutes = getFilteredRoutes(roles);
 
   return (
-    <CContainer className="px-4" lg>
+    <CContainer fluid className="p-0 m-0" style={{ width: '100%', maxWidth: '100%' }}>
       <Suspense fallback={<CSpinner color="primary" />}>
         <Routes>
           {filteredRoutes.map((route, idx) => {

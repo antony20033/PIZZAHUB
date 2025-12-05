@@ -116,7 +116,7 @@ const Usuarios = () => {
 
 
   return (
-    <div style={{ padding: '20px', background: '#F3F4F6', minHeight: '100vh' }}>
+    <div className="page-container" style={{ background: '#F3F4F6', minHeight: '100vh', width: '100%', maxWidth: '100%', margin: 0 }}>
 
       {/* ------------------ FORMULARIO MODERNO ------------------ */}
       <CCard className="shadow-lg mb-4 fade-in" style={{ borderRadius: '20px', border: 'none' }}>

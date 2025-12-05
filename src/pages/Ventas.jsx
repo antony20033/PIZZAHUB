@@ -374,7 +374,7 @@ useEffect(() => {
   const inputBlur = (e) => (e.target.style.borderColor = "#E5E7EB");
 
   return (
-    <div style={{ padding: "20px", background: "#F3F4F6", minHeight: "100vh" }}>
+    <div className="page-container" style={{ background: "#f8f9fa", minHeight: "100vh", width: "100%", maxWidth: "100%", margin: 0 }}>
       
       {/* Header Card */}
       <CCard className="shadow-lg mb-4" style={{ borderRadius: "20px", border: "none" }}>

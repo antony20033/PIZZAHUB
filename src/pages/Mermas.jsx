@@ -18,7 +18,7 @@ const Mermas = () => {
   )
 
   return (
-    <div style={{ padding: '20px', background: '#F3F4F6', minHeight: '100vh' }}>
+    <div className="page-container" style={{ background: '#F3F4F6', minHeight: '100vh', width: '100%', maxWidth: '100%', margin: 0 }}>
       <div className="fade-in" style={{ background: 'white', padding: '30px', borderRadius: '20px', marginBottom: '30px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)', borderBottom: '4px solid #FF6600' }}>
         <h1 style={{ margin: '0 0 8px 0', fontSize: '32px', fontWeight: '800', color: '#1A1C20' }}>📉 Registro de Mermas</h1>
         <p style={{ margin: 0, color: '#666', fontSize: '15px' }}>Control de pérdidas e insumos dañados</p>

@@ -53,9 +53,9 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-container" style={{ width: '100%', padding: '20px', maxWidth: '100%' }}>
       {/* Banner de Bienvenida */}
-      <CCard className="mb-4 welcome-banner">
+      <CCard className="mb-4 welcome-banner" style={{ width: '100%' }}>
         <CCardBody>
           <CRow className="align-items-center">
             <CCol md={8}>

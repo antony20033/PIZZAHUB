@@ -156,7 +156,7 @@ const UsuariosMovil = () => {
 
   return (
     <>
-      <div style={{ padding: '20px', background: '#F3F4F6', minHeight: '100vh' }}>
+      <div className="page-container" style={{ background: '#F3F4F6', minHeight: '100vh', width: '100%', maxWidth: '100%', margin: 0 }}>
       <CCard className="fade-in" style={{ borderRadius: '20px', border: 'none', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)' }}>
         <CCardHeader
           style={{

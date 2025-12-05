@@ -147,7 +147,7 @@ const Caja = () => {
   };
 
   return (
-    <div className="container mt-4 fade-in" style={{ maxWidth: "800px" }}>
+    <div className="page-container fade-in" style={{ maxWidth: "100%", width: "100%", margin: 0 }}>
       <h2 className="text-center mb-4" style={{
         fontWeight: "800",
         fontSize: "32px",

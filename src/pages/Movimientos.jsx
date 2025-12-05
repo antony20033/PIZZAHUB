@@ -345,9 +345,9 @@ const Movimientos = () => {
   };
 
   return (
-    <div style={{ padding: "20px", background: "#F3F4F6", minHeight: "100vh" }}>
+    <div className="page-container" style={{ background: "#F3F4F6", minHeight: "100vh", width: "100%", maxWidth: "100%", margin: 0 }}>
       {/* ========== SECCIÓN: RESUMEN GENERAL ========== */}
-      <CRow xs={{ gutter: 4 }} className="mb-4">
+      <CRow xs={{ gutter: 4 }} className="mb-4" style={{ width: "100%", margin: 0 }}>
         <CCol sm={6} lg={3}>
           <CWidgetStatsC
             icon={<CIcon icon={cilMoney} height={36} />}

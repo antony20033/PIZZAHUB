@@ -81,6 +81,8 @@ const AppSidebar = () => {
         padding: '0',
         boxShadow: '4px 0 20px rgba(0, 0, 0, 0.15)',
         borderRight: '1px solid rgba(255, 255, 255, 0.1)',
+        width: unfoldable ? '64px' : '256px',
+        zIndex: 1040
       }}
     >
       {/* Header */}

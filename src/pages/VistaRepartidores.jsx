@@ -164,10 +164,13 @@ const VistaRepartidor = () => {
 
   return (
     <div
+      className="page-container"
       style={{
         minHeight: "100vh",
         background: "linear-gradient(135deg, #FF6600 0%, #FF8533 50%, #FFA366 100%)",
-        padding: "20px",
+        width: "100%",
+        maxWidth: "100%",
+        margin: 0
       }}
     >
       {/* Notificación Flotante */}

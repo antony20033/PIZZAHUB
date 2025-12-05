@@ -117,13 +117,16 @@ const registrarPedido = async () => {
 
   return (
     <div
+      className="page-container"
       style={{
         minHeight: "100vh",
         background: "#F3F4F6",
-        padding: "30px 20px"
+        width: "100%",
+        maxWidth: "100%",
+        margin: 0
       }}
     >
-      <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
+      <div style={{ maxWidth: "100%", margin: "0 auto", width: "100%" }}>
         {/* HEADER */}
         <div
           className="fade-in"

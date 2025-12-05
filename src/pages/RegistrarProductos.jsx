@@ -93,10 +93,13 @@ const RegistrarProductos = () => {
 
   return (
     <div
+      className="page-container"
       style={{
-        padding: "20px",
         background: "#F3F4F6",
-        minHeight: "100vh"
+        minHeight: "100vh",
+        width: "100%",
+        maxWidth: "100%",
+        margin: 0
       }}
     >
       <CCard
