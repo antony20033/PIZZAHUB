@@ -18,6 +18,7 @@ const AgregarInsumos = () => {
     nombre: '',
     cantidad: '',
     unidad: '',
+    stockMinimo: 10,
     proveedor: '',
     caducidad: '',
     costo: '',
@@ -161,6 +162,13 @@ const AgregarInsumos = () => {
       return;
     }
 
+    // Validar stock mínimo
+    let stockMinimoVal = parseInt(formData.stockMinimo, 10);
+    if (isNaN(stockMinimoVal) || stockMinimoVal < 0) {
+      alert('⚠️ El Stock Mínimo debe ser un número entero mayor o igual a 0');
+      return;
+    }
+
     // Convertir la unidad a la forma correcta
     const unidadTexto = convertirUnidad(formData.unidad);
 
@@ -179,7 +187,7 @@ const AgregarInsumos = () => {
       Nombre: formData.nombre.trim(),
       UnidadMedida: unidadTexto,
       StockInicial: cantidadLimpia,
-      StockMinimo: 10
+      StockMinimo: stockMinimoVal
     };
 
     console.log("📤 Enviando datos:", data);
@@ -434,6 +442,24 @@ const AgregarInsumos = () => {
                   />
                 </CCol>
 
+                {/* Stock Mínimo */}
+                <CCol md={3}>
+                  <CFormLabel htmlFor="stockMinimo" style={formLabelStyle}>
+                    Stock Mínimo
+                  </CFormLabel>
+                  <CFormInput
+                    type="number"
+                    step="1"
+                    min="0"
+                    id="stockMinimo"
+                    name="stockMinimo"
+                    placeholder="Ej: 10"
+                    value={formData.stockMinimo}
+                    onChange={handleInputChange}
+                    style={{...formInputStyle, fontWeight: '600'}}
+                  />
+                </CCol>
+
                 {/* Unidad */}
                 <CCol md={3}>
                   <CFormLabel htmlFor="unidad" style={formLabelStyle}>
@@ -486,7 +512,7 @@ const AgregarInsumos = () => {
                       backgroundColor: '#FF6600',
                       boxShadow: '0 4px 8px rgba(255, 102, 0, 0.3)',
                     }}>
-                      <span style={{ filter: 'grayscale(0.1)' }}>📦</span>
+                        <span style={{ filter: 'grayscale(0.1)' }}>📦</span>
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: '700', fontSize: '22px', color: '#333', marginBottom: '4px' }}>
@@ -495,7 +521,10 @@ const AgregarInsumos = () => {
                       <div style={{ color: '#555', fontSize: '16px', fontWeight: '500' }}>
                         {formData.cantidad && formData.unidad
                           ? `Stock Inicial: ${formData.cantidad} ${convertirUnidad(formData.unidad)}`
-                          : 'Ingresa cantidad y unidad'}
+                            : 'Ingresa cantidad y unidad'}
+                        <div style={{ marginTop: 6, color: '#777', fontSize: '13px' }}>
+                          Stock Mínimo: {formData.stockMinimo}
+                        </div>
                       </div>
                     </div>
                   </div>

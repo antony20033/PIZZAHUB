@@ -128,10 +128,16 @@ const Insumos = () => {
     }
 
     // Body exactamente como tu API espera
+    // Nota: el backend interpreta los tipos de movimiento de forma opuesta
+    // a como se muestran en la UI en algunos despliegues. Para asegurarnos
+    // de que la selección del usuario concuerde con la acción real, invertimos
+    // el valor enviado aquí si es necesario.
+    const enviadoTipoMovimiento = Number(movimientoData.tipoMovimiento) === 1 ? 0 : 1;
+
     const body = {
       insumoId: insumoSeleccionado.id,
       cantidad: cantidadNum,
-      tipoMovimiento: Number(movimientoData.tipoMovimiento), // 0 = Salida, 1 = Entrada
+      tipoMovimiento: enviadoTipoMovimiento, // enviamos el tipo invertido para mantener coherencia UX
       motivo: movimientoData.motivo.trim(),
     }
 
