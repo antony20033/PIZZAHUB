@@ -46,11 +46,14 @@ export const handler = async function (event, context) {
     const responseHeaders = {}
     res.headers.forEach((value, key) => {
       const lower = key.toLowerCase()
-      if (['transfer-encoding', 'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailers', 'upgrade'].includes(lower)) return
+      // Remove hop-by-hop and encoding/length headers that would confuse the browser
+      if (['transfer-encoding', 'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailers', 'upgrade', 'content-encoding', 'content-length'].includes(lower)) return
       responseHeaders[key] = value
     })
 
-    // Ensure browser can receive response from the function
+    // Prevent the browser from trying to decode a body we've re-encoded
+    // (some backends return compressed bodies; we forward raw bytes/base64)
+    // Force CORS headers so the client can read the response
     responseHeaders['Access-Control-Allow-Origin'] = ALLOWED_ORIGIN || '*'
     responseHeaders['Access-Control-Allow-Credentials'] = 'true'
 
