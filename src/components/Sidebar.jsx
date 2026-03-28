@@ -16,7 +16,8 @@ import { AppSidebarNav } from './SidebarNav'
 import { getFilteredNav } from '../navegacion/_nav'
 import AuthContext from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
-import logo from '../media/img/logo.jpg'
+// Use public asset for logo so it can be replaced easily
+const logo = '/logoPizza.png'
 import useNewPedidos from '../hooks/useNewPedidos'
 
 const AppSidebar = () => {
@@ -119,9 +120,9 @@ const AppSidebar = () => {
             border: '3px solid rgba(255, 102, 0, 0.3)',
             transition: 'width 0.3s ease, height 0.3s ease',
           }}>
-            <img 
-              src={logo} 
-              alt="PizzaHub Logo" 
+            <img
+              src={logo}
+              alt="PizzaHub Logo"
               style={{
                 width: '100%',
                 height: '100%',
